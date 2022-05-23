@@ -68,7 +68,7 @@ class SimpleEnv(gym.Env):
     def __init__(self,
                  T=10, dt=1, Q=3, dq=1, Q_0=0, dp=0.1, min_dp=1, mu=100, std=0.01, utility_fnc=None, lambda_pos=1,
                  lambda_neg=1, kappa=100, alpha=1e-4, phi=1e-5, pre_run=None, printing=False, debug=False, d=5,
-                 use_all_times=False, analytical=False, breaching_penalty=False, breach_penalty=20,
+                 use_all_times=True, analytical=False, breaching_penalty=False, breach_penalty=20,
                  reward_scale=1, breach_penalty_function=np.square):
         super(SimpleEnv, self).__init__()
 
