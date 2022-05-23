@@ -135,7 +135,7 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
         Q_zero_grouped.append(np.max(Q_tab[(0,0)]))
 
         # Printing every 1% of total episodes
-        if (episode + 1) % (0.01 * n) == 0:
+        if (episode + 1) % (0.2 * n) == 0:
             percentage = "{:.0%}".format(episode / n)
 
             time_remaining = str(timedelta(seconds=round((t.time() - start_time) / (episode + 1) * (n - episode - 1), 2)))
