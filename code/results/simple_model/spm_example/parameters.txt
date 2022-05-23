@@ -1,0 +1,19 @@
+MODEL PARAMETERS
+d : 4
+T : 20
+dp : 0.01
+min_dp : 0
+phi : 0.0001
+
+Q-LEARNING PARAMETERS
+epsilon_start : 1
+epsilon_end : 0.05
+epsilon_cutoff : 0.5
+alpha_start : 0.5
+alpha_end : 0.001
+alpha_cutoff : None
+beta_start : 1
+beta_end : 0.05
+beta_cutoff : 0.5
+exploring_starts : True
+n : 100000.0

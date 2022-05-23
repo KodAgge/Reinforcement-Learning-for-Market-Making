@@ -1,0 +1,8 @@
+strategy                 mean reward    std reward
+---------------------  -------------  ------------
+analytical_discrete        0.127752      0.0764701
+analytical_continuous      0.132987      0.0717148
+constant (d=2)             0.0987989     0.0796333
+random                     0.0618333     0.0958115
+Q_learning (best run)      0.123278      0.0772611
+Q_learning (average)       0.127178      0.0785348
