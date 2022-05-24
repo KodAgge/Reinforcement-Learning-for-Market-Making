@@ -68,7 +68,6 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
     alpha = alpha_start
 
     # ----- SIMULATING -----
-
     start_time = t.time()
 
     for episode in range(int(n)):
@@ -111,7 +110,7 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
         # Save the best Q-value
         Q_zero_grouped.append(np.max(Q_tab[(0, 1)]))
 
-        # Printing every 1% of total episodes
+        # Printing every 20% of total episodes
         if (episode + 1) % (0.20 * n) == 0:
             percentage = "{:.0%}".format((episode + 1) / n)
 
@@ -494,76 +493,3 @@ def Q_learning_multiple(args, Q_learning_args, n=1e5, n_runs=5,
         save_parameters(args, Q_learning_args, folder_name)
 
     return file_names
-
-
-if __name__ == "__main__":
-
-    if False:
-        args = {"include_spread_levels": True, "num_levels": 10, "mm_priority": True, "T": 100,
-                "num_time_buckets": 5, "num_inv_buckets": 3}
-
-        folder_name = "test_multiple"
-        folder_mode = True
-
-        Q_learning_args = {
-            "epsilon_start": 1, "epsilon_end": 0.05, "epsilon_cutoff": 0.5,
-            "alpha_start": 0.5, "alpha_end": 0.0005,
-            "beta_start": 1, "beta_end": 0.02, "beta_cutoff": 0.5
-        }
-
-        Q_learning_multiple(args, Q_learning_args, n=1e2, n_runs=2, folder_mode=folder_mode, folder_name=folder_name)
-
-    if False:
-
-        # ----- RUNNING THE Q-LEARNING -----
-        # args = {"d": 4, "T": 5, "dp": 0.01, "min_dp": 0, "alpha": 1e-4, "phi": 1e-5, "use_all_times": True,
-        #         "breaching_penalty":False, "breach_penalty":0.01, "reward_scale": 1}
-        x0 = init_LOB(num_levels=10, init_ask=10001, init_spread=2, init_volume=1)
-        args = {"include_spread_levels": True, "num_levels": 10, "mm_priority": True, "T": 1000,
-                "num_time_buckets": 5, "num_inv_buckets": 3, "kappa": 6, "MO_action": False,
-                "dt": 200}
-
-        n = 1e3
-        suffix = "_Q-testing"
-
-        # env = SimpleEnv(**args, printing=False, debug=False, breach_penalty_function = np.abs)
-        env = MonteCarloEnv(**args, ob_start=x0, debug=False)
-
-        # Run the Q-learning
-        epsilon_start = 1
-        epsilon_end = 0.05
-        epsilon_cutoff = 0.50
-
-        alpha_start = 0.5
-        alpha_end = 0.05
-
-        beta_start = 1
-        beta_end = 0.05
-        beta_cutoff = 0.5
-
-        Q_tab, rewards_average, Q_zero_average, x_values = tabular_Q_learning(env, n=int(n),
-                                                                              alpha_start=alpha_start,
-                                                                              alpha_end=alpha_end,
-                                                                              epsilon_start=epsilon_start,
-                                                                              epsilon_end=epsilon_end,
-                                                                              epsilon_cutoff=epsilon_cutoff,
-                                                                              beta_start=beta_start, beta_end=beta_end,
-                                                                              beta_cutoff=beta_cutoff,
-                                                                              exploring_starts=True)
-
-        print("final Q(0,1):", Q_zero_average[-1])
-        print("mean reward of last 10%:", np.mean(np.array(rewards_average)[int(len(rewards_average) * 0.9):]))
-        # print(Q_tab)
-
-        if True:
-            plot_rewards(rewards_average, x_values)
-            plot_Q_zero(Q_zero_average, x_values)
-
-            # Save the Q-table
-            save_Q(Q_tab, args, n, rewards_average, Q_zero_average, x_values, suffix)
-
-            # Show the results
-            Q_loaded = load_Q(fetch_table_name(args, n, suffix))[0]
-            show_Q(Q_loaded)
-            heatmap_Q(Q_loaded)
-

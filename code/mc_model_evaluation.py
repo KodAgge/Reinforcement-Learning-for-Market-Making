@@ -203,26 +203,19 @@ def evaluate_strategies_multiple_Q(file_names, args, mean_rewards, Q_mean, n_tes
     args_environment = args
 
     # Get the constant rewards
-    # print("\tevaluating constant strategy...", end="")
     rewards_constant = evaluate_constant_strategy(args_environment, n=n_test, c=c)
     print(".", end="")
-    # print(" done")
 
     # Get the random rewards
-    # print("\tevaluating random strategy...", end="")
     rewards_random = evaluate_random_strategy(args_environment, n=n_test)
     print(".", end="")
-    # print(" done")
 
     # Get the best Q-learning rewards
-    # print("\tevaluating best Q-learning run...", end="")
     best_idx = np.argmax(mean_rewards)
     rewards_Q_learning_best, _, _ = evaluate_Q_matrix(file_names[best_idx], n=n_test, folder_mode=folder_mode, folder_name=folder_name)
     print(".", end="")
-    # print(" done")
 
     # Get the average Q-learning  rewards
-    # print("\tevaluating average of Q-learning runs...", end="")
     rewards_Q_learning_average, _, _ = evaluate_Q_matrix(None, n=n_test, folder_mode=folder_mode, folder_name=folder_name, Q_tab=Q_mean, args=args)
     print(".", end="")
 
@@ -847,126 +840,3 @@ def evaluate_strategy_properties_multiple(all_Q, all_X, all_V):
 
     # legend
     fig.legend([f"run {i}" for i in range(1, len(all_Q)+1)], loc="lower right")
-
-NUM_LEVELS = 10
-INIT_ASK = 10001
-INIT_SPREAD = 2
-INIT_VOLUME = 1
-
-if __name__ == "__main__":
-    if False:
-        # ===== TRAIN NEW AGENTS =====
-        folder_mode = True              # If loading should be done from seperate folder
-        folder_name = "dt10"   # The name of the folder
-
-        save_mode = True                # If plots should be shown or saved
-
-        # Arguments of the trained agents
-        args = {"dt": 1, "T": 1000, "num_time_buckets": 5, "kappa": 5, "num_levels": 10,
-                "pre_run_on_start": False, "pre_run_iterations": 5}
-
-        # Remaining arguments
-        n_test = 1e3
-        n_runs = 1
-        n_train = 1e2
-
-        # Arguments of the Q-learning
-        Q_learning_args = {
-            "epsilon_start": 1, "epsilon_end": 0.05, "epsilon_cutoff": 0.5,
-            "alpha_start": 0.5, "alpha_end": 0.0001,
-            "beta_start": 1, "beta_end": 0.02, "beta_cutoff": 0.5,
-            "exploring_starts": True
-        }
-        
-        # Perform the comparison
-        Q_learning_comparison(n_train=n_train, n_test=n_test, n_runs=n_runs,
-            args=args, Q_learning_args=Q_learning_args,
-            folder_mode=folder_mode, folder_name=folder_name, save_mode=save_mode)
-
-    if False:
-        # ===== LOADING OLD FILES =====
-
-        folder_mode = True              # If loading should be done from seperate folder
-        folder_name = "gcp_unbinned_v2"   # The name of the folder
-
-        save_mode = True                # If plots should be shown or saved
-
-        # Arguments of the trained agents
-        args = get_args_from_txt(folder_name)
-        
-        # Remaining arguments
-        n_test = 1e0
-        n_runs = 8
-        n_train = 1.6e6
-
-        # Fetch the names of the tables to be loaded
-        file_names = args_to_file_names(args, n_runs = n_runs, n = n_train)
-
-        # Perform the comparison
-        Q_learning_comparison(n_test=n_test, file_names=file_names, args=args,
-                              folder_mode=folder_mode, folder_name=folder_name, save_mode=save_mode, skip_T=True)
-
-    if False:
-
-        folder_mode = True              # If loading should be done from separate folder
-        folder_name = "gcp_MEGA_run"   # The name of the folder
-        # folder_name = "gcp_ungrouped"
-        args = get_args_from_txt(folder_name)
-
-        save_mode = True                # If plots should be shown or saved
-
-        n_test = 1e1
-        n_runs = 8
-        n_train = 4e4
-        # n_train = 1600000
-
-        # Fetch the names of the tables to be loaded
-        file_names = args_to_file_names(args, n_runs = n_runs, n=n_train)
-
-        Q_mean, Q_tables = calculate_mean_Q(file_names, folder_mode=folder_mode, folder_name=folder_name)
-
-        return_X_Q_V = True
-
-        rewards, _, _, Qs, Xs, Vs = evaluate_Q_matrix(_, n=n_test, args=args, Q_tab=Q_mean, return_X_Q_V=return_X_Q_V)
-
-        evaluate_strategy_properties(Qs, Xs, Vs)
-
-        print("Done")
-
-    if False:
-        folder_mode = True  # If loading should be done from separate folder
-        folder_name = "gcp_unbinned_v2"  # The name of the folder
-        # folder_name = "gcp_ungrouped"
-        args = get_args_from_txt(folder_name)
-
-        save_mode = True  # If plots should be shown or saved
-
-        n_test = 1e3
-        n_runs = 8
-        # n_train = 4e4
-        n_train = 1600000
-
-        # Fetch the names of the tables to be loaded
-        file_names = args_to_file_names(args, n_runs=n_runs, n=n_train)
-
-        Q_mean, Q_tables = calculate_mean_Q(file_names, folder_mode=folder_mode, folder_name=folder_name)
-
-        return_X_Q_V = True
-
-        all_Q, all_X, all_V = list(), list(), list()
-
-        for i in range(len(Q_tables)):
-            print("Starting table", i+1)
-            _, _, _, Qs, Xs, Vs = evaluate_Q_matrix(_, n=n_test, args=args, Q_tab=Q_mean, return_X_Q_V=return_X_Q_V)
-            all_Q.append(Qs)
-            all_X.append(Xs)
-            all_V.append(Vs)
-
-        print("succé")
-        # evaluate_strategy_properties(Qs, Xs, Vs)
-        evaluate_strategy_properties_multiple(all_Q, all_X, all_V)
-
-        print("Done")
-
-
-

@@ -43,7 +43,7 @@ def evaluate_Q_matrix(matrix_path, n, folder_mode=False, folder_name=None, Q_tab
 
     rewards = list()
 
-    for episode in range(int(n)):
+    for _ in range(int(n)):
 
         env.reset()
         disc_reward = 0
@@ -52,7 +52,7 @@ def evaluate_Q_matrix(matrix_path, n, folder_mode=False, folder_name=None, Q_tab
             state = env.state()
             action = np.array(np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape))
 
-            new_state, action_reward = env.step(np.array(action))  # Get the new state and the reward
+            _, action_reward = env.step(np.array(action))  # Get the new state and the reward
 
             disc_reward += action_reward  # * (gamma ** env.t)  # Discounting with gamma
 
@@ -141,10 +141,9 @@ def evaluate_constant_strategy(args_environment, n=1000, c=2):
         disc_reward = 0
 
         while env.t < env.T:
-            state = env.state()
             action = np.array([c, c]) - env.min_dp
 
-            new_state, action_reward = env.step(np.array(action))  # Get the new state and the reward
+            _, action_reward = env.step(np.array(action))  # Get the new state and the reward
 
             disc_reward += action_reward  # * (gamma ** env.t)  # Discounting with gamma
 
@@ -180,10 +179,9 @@ def evaluate_random_strategy(args_environment, n=1000):
         disc_reward = 0
 
         while env.t < env.T:
-            state = env.state()
             action = env.action_space.sample()
 
-            new_state, action_reward = env.step(np.array(action))  # Get the new state and the reward
+            _, action_reward = env.step(np.array(action))  # Get the new state and the reward
 
             disc_reward += action_reward  # * (gamma ** env.t)  # Discounting with gamma
 
@@ -683,104 +681,3 @@ def get_args_from_txt(folder_name):
                     value = int(value)
 
             args[key] = value
-
-
-if __name__ == "__main__":
-
-    if False:
-        # ===== LOAD OLD FILES =====
-
-        folder_mode = True              # If loading should be done from seperate folder
-        folder_name = "longest_run"   # The name of the folder
-
-        save_mode = False                # If plots should be shown or saved
-
-        # Arguments of the trained agents
-        # HAS TO BE IN THE CORRECT ORDER
-        # args = {"d": 5, "T": 5, "dp": 0.01, "min_dp": 0, "alpha": 1e-4, "phi": 1e-5, "use_all_times": True}
-        # args = get_args_from_txt(folder_name)
-        args = {"d": 4, "T": 5, "dp": 0.01, "min_dp": 0, "alpha": 1e-4, "phi": 1e-5, "use_all_times": True}
-
-        # Remaining arguments
-        n_test = 1e6
-        n_runs = 10
-        n_train = 1.5e7
-
-        # Fetch the names of the tables to be loaded
-        file_names = args_to_file_names(args, n_runs = n_runs, n = n_train)
-
-        # Perform the comparison
-        Q_learning_comparison(n_test=n_test, file_names=file_names, args=args,
-            folder_mode=folder_mode, folder_name=folder_name, save_mode=save_mode)
-
-    if False:
-        # ===== TRAIN NEW AGENTS =====
-        folder_mode = True              # If loading should be done from seperate folder
-        folder_name = "longest_run"   # The name of the folder
-
-        save_mode = True                # If plots should be shown or saved
-
-        # Arguments of the trained agents
-        args = {"d": 4, "T": 5, "dp": 0.01, "min_dp": 0, "alpha": 1e-4, "phi": 1e-5, "use_all_times": True}
-
-        # Remaining arguments
-        n_test = 1e6
-        n_runs = 10
-        n_train = 1.5e7
-
-        # Arguments of the Q-learning
-        Q_learning_args = {
-            "epsilon_start": 1, "epsilon_end": 0.05, "epsilon_cutoff": 0.5,
-            "alpha_start": 0.5, "alpha_end": 5e-6, "alpha_cutoff": None,
-            "beta_start": 1, "beta_end": 0.05, "beta_cutoff": 0.5,
-            "exploring_starts": True
-        }
-        
-        # Perform the comparison
-        Q_learning_comparison(n_train=n_train, n_test=n_test, n_runs=n_runs,
-            args=args, Q_learning_args=Q_learning_args,
-            folder_mode=folder_mode, folder_name=folder_name, save_mode=save_mode)
-
-    if False:
-        # ===== COUNTING HOW MANY OF THE ACTIONS ARE CORRECT =====
-        
-        folder_mode = True              # If loading should be done from seperate folder
-        folder_name = "longest_run"   # The name of the folder
-
-        # Remaining arguments
-        n_runs = 10
-        n_train = 1.5e7
-
-        args = {"d": 4, "T": 5, "dp": 0.01, "min_dp": 0, "alpha": 1e-4, "phi": 1e-5, "use_all_times": True}
-
-        env = SimpleEnv(**args, printing=False, debug=False, analytical=False)
-
-        file_names = args_to_file_names(args, n_runs = n_runs, n = n_train)
-
-        Q_mean, Q_tables = calculate_mean_Q(file_names, folder_mode=folder_mode, folder_name=folder_name)
-
-        Q_tables.append(Q_mean)
-
-        for i, Q in enumerate(Q_tables):
-            print("="*40)
-            if i < len(file_names):
-                print("TABLE", i+1)
-            else:
-                print("MEAN TABLE")
-            print()
-            Q_bid, Q_ask = Q_table_to_array(Q, env)
-
-            analytical_bid = generate_optimal_depth(args["T"], env.Q, env.dp, args["phi"], bid=True, discrete=True)
-            analytical_bid = analytical_bid[0:(analytical_bid.shape[0]-1), 0:(analytical_bid.shape[1]-1)]
-
-            analytical_ask = generate_optimal_depth(args["T"], env.Q, env.dp, args["phi"], bid=False, discrete=True)
-            analytical_ask = analytical_ask[1:(analytical_ask.shape[0]), 0:(analytical_ask.shape[1]-1)]
-
-            num_correct_bid = np.sum(analytical_bid==Q_bid)
-            num_correct_ask = np.sum(analytical_ask==Q_ask)
-            num_strategies = Q_bid.size
-
-            print("Ask:", num_correct_ask, "of", num_strategies, "are correct.")
-            print("Bid:", num_correct_bid, "of", num_strategies, "are correct.")
-            print("Total:", num_correct_bid + num_correct_ask, "of", 2*num_strategies, "are correct.")
-            print()

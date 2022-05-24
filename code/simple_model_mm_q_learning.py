@@ -79,7 +79,6 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
     alpha = alpha_start
 
     # ----- SIMULATING -----
-
     start_time = t.time()
 
     for episode in range(int(n)):
@@ -134,7 +133,7 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
         # Save the best Q-value
         Q_zero_grouped.append(np.max(Q_tab[(0,0)]))
 
-        # Printing every 1% of total episodes
+        # Printing every 20% of total episodes
         if (episode + 1) % (0.2 * n) == 0:
             percentage = "{:.0%}".format(episode / n)
 
@@ -510,60 +509,3 @@ def Q_learning_multiple(args, Q_learning_args, n = 1e5, n_runs = 5, folder_mode 
         save_parameters(args, Q_learning_args, folder_name)
 
     return file_names
-
-
-if __name__ == "__main__":
-
-    if False:
-        args = {"d": 4, "T": 5, "dp": 0.01, "min_dp": 0, "alpha": 1e-4, "phi": 1e-5, "use_all_times": True}
-        
-        folder_name = "test_multiple"
-        folder_mode = True
-
-        Q_learning_multiple(args, n = 1e3, n_runs = 3, folder_mode=folder_mode, folder_name=folder_name)
-
-    if False:
-
-        # ----- RUNNING THE Q-LEARNING -----
-        args = {"d": 4, "T": 5, "dp": 0.01, "min_dp": 0, "use_all_times": True}
-
-        n = 2e2
-        suffix = "_expdecay"
-
-        env = SimpleEnv(**args, printing=False, debug=False, breach_penalty_function = np.abs)
-
-
-        # Run the Q-learning
-        epsilon_start = 1
-        epsilon_end = 0.05
-        epsilon_cutoff = 0.5
-
-        alpha_start = 0.5
-        alpha_end = 0.00001
-        alpha_cutoff = 1
-
-        beta_start = 1
-        beta_end = 0.05
-        beta_cutoff = 0.5
-
-        folder_name = "test"
-        folder_mode = False
-
-        Q_tab, rewards_average, Q_zero_average, x_values = tabular_Q_learning(env, n=n,
-                                            alpha_start=alpha_start, alpha_end=alpha_end, alpha_cutoff=alpha_cutoff,
-                                            epsilon_start=epsilon_start, epsilon_end=epsilon_end,
-                                            epsilon_cutoff=epsilon_cutoff,
-                                            beta_start=beta_start, beta_end=beta_end, beta_cutoff=beta_cutoff,
-                                            exploring_starts=True)
-
-        if True:
-            plot_rewards(rewards_average, x_values)
-            plot_Q_zero(Q_zero_average, x_values)
-
-            # Save the Q-table
-            save_Q(Q_tab, args, n, rewards_average, Q_zero_average, x_values, suffix, folder_mode=folder_mode, folder_name=folder_name)
-
-            # Show the results
-            Q_loaded = load_Q(fetch_table_name(args, n, suffix), folder_mode=folder_mode, folder_name=folder_name)[0]
-            show_Q(Q_loaded, env)
-            heatmap_Q(Q_loaded)
