@@ -3,11 +3,37 @@
 This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken and can be found [here](https://www.google.com). FIX LINK
 
 ## Thesis
-Our thesis 
+Our thesis uses reinforcement learning to find optimal market making strategies in a limit order book. Before going a bit deeper into what this means, here's the abstract.
 
 ### Abstract
 > Market making - the process of simultaneously and continuously providing buy and sell prices in a financial asset - is rather complicated to optimize. Applying reinforcement learning (RL) to infer optimal market making strategies is a relatively uncharted and novel research area. Most published articles in the field are notably opaque concerning most aspects, including precise methods, parameters, and results. This thesis attempts to explore and shed some light on the techniques, problem formulations, algorithms, and hyperparameters used to construct RL-derived strategies for market making. First, a simple probabilistic model of a limit order book is used to compare analytical and RL-derived strategies. Second, a market making agent is trained on a more complex Markov chain model of a limit order book using tabular Q-learning and deep reinforcement learning with double deep Q-learning. Results and strategies are analyzed, compared, and discussed. Finally, we propose some exciting extensions and directions for future work in this research field.
 
+### Reinforcement learning
+For anyone not familiar with reinforcement learning (RL), it's a concept that stems from the idea of how humans and animals learn: by interacting in our environment and learning from experience. 
+
+#### Examples
+The most famous example of reinforcement learning is probably DeepMind's AlphaGo. AlphaGo was the first computer program to beat a world champion in the board game of Go. If you haven't seen the documentary about AlphaGo, you should totally check it out. It's available on Youtube [here](https://www.youtube.com/watch?v=WXuK6gekU1Y). Other cool stuff that has been done is teaching a computer program to play Atari arcade games on a superhuman level (the first example of something called _deep Q-networks_) and DeepMind's AlphaFold. AlphaFold is the world's greatest computer program for protein structure prediction. 
+
+#### Mathematical framework
+vill vi skriva något om det?
+
+
+In this thesis, we use two different RL methods to find optimal market making strategies: Q-learning and DDQN. 
+#### Q-learning
+
+
+#### DDQN
+
+
+
+### Limit order book
+A limit order book is just a collection of outstanding orders on an exchange... 
+
+
+### Market making
+
+
+### Our results
 
 
 ## to do
