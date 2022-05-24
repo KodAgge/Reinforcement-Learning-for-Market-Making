@@ -25,6 +25,7 @@ import threading
 from pprint import pprint
 from types import MethodType
 
+CENT_TO_DOLLAR = 100
 
 # ========================================
 # ===== SETUP AND TRAINING THE AGENT =====
@@ -128,7 +129,7 @@ def setup_ddqn_agent(env, info, gpu=-1):
 
 def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq=None, step_offset=0,
                            step_hooks=(), logger=None, printing=False, suffix="",
-                           threshold=1e6, print_freq=100):
+                           threshold=1e6, print_freq=5):
     """
     Training PFRL agent
 
@@ -158,7 +159,6 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
 
     log_interval = info["log_interval"]
     num_estimate = info["num_estimate"] if sample_env.randomize_reset else 1   # if it doesnt randomize it's useless 
-    print("\tEstimating q with", num_estimate, "states")
     steps = info["n_train"]
 
     assert (sample_env.T / sample_env.dt) * num_envs <= log_interval
@@ -211,7 +211,6 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
                     # Save the reward estimates
                     n_extra_steps = len(episodal_rs_averages) % (sample_env.T / sample_env.dt)
                     avg_episodal_rew = (sample_env.T / sample_env.dt) * np.mean(episodal_rs_averages[:int((len(episodal_rs_averages)-n_extra_steps))]) / info["reward_scale"]
-                    smooth_r = 0.97 * smooth_r + 0.03 * avg_episodal_rew
                     r_estimate.append(avg_episodal_rew) # Only average full episodes
 
                     if len(episodal_rs_averages) >= sample_env.T / sample_env.dt:   # Reset only when atleast a full episode reached
@@ -221,12 +220,12 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
                     loss.append(agent.get_statistics()[1][1])
 
                     if printing:
+                        smooth_r = 0.97 * smooth_r + 0.03 * avg_episodal_rew
                         print('\t\tt: ', t)
                         print('\t\tq: ', q_estimate[-1] / CENT_TO_DOLLAR)
                         print('\t\tr: ', r_estimate[-1] / CENT_TO_DOLLAR)
                         print('\t\tl: ', loss[-1] / (info["reward_scale"] ** 2) / CENT_TO_DOLLAR)
                         print('\t\tsmooth r: ', smooth_r / CENT_TO_DOLLAR)
-                        # print(a_from_agent(agent, sample_env))
                         print("\t\t"+"-"*24)
 
                     t_diff = 0
@@ -339,7 +338,7 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
         # Train the agent
         t_estimate, q_estimate, r_estimate, loss = train_pfrl_agent_batch(agent, vec_env, sample_env, 
                                                                             info, outdir + "model_folder/", 
-                                                                            printing=True, suffix=suffix_)
+                                                                            printing=False, suffix=suffix_)
         vec_env.close()
 
         # The name of the estimate file
@@ -604,7 +603,7 @@ def evaluate_DDQN_batch(outdir, n_test = 10, c=1, Q=3, gpu=-1, randomize_start=F
     # FETCH NEEDED INFO
     model_names, estimate_names = load_file_names(outdir)
     args, info = load_arguments(outdir)
-    args["randomize_reset"] = randomize_start     # choose what you want
+    args["randomize_reset"] = randomize_start     
     args["phi"] = 0
 
 
@@ -613,18 +612,17 @@ def evaluate_DDQN_batch(outdir, n_test = 10, c=1, Q=3, gpu=-1, randomize_start=F
     env_function = get_env_function()
     vec_env = setup_batch_env(args, env_function, num_envs=info["num_envs"])
     for model_name in model_names:
-        print("\tLoading:", model_name)
         agents.append(load_agent(setup_ddqn_agent(vec_env, info, gpu), model_name))
 
 
-    # # CREATE GRAPH WITH REWARD AND Q ESTIMATES
+    # CREATE GRAPH WITH REWARD AND Q ESTIMATES
     print("PLOTTING TRAINING...")
     plot_training_r_q_l(estimate_names, info, folder_name=image_folder_name)
 
     
     # # CREATE HEATMAPS OF STRATEGIES
     print("PLOTTING STRATEGIES...")
-    show_strategies_batch(agents, vec_env, info, args, 100, folder_name=image_folder_name, Q=Q)
+    show_strategies_batch(agents, vec_env, info, args, info["n_states"], folder_name=image_folder_name, Q=Q)
     
 
     # EVALUATE THE DIFFERENT RUNS
@@ -643,9 +641,13 @@ def evaluate_DDQN_batch(outdir, n_test = 10, c=1, Q=3, gpu=-1, randomize_start=F
 
     # EVALUATE AGAINST BENCHMARKS
     print("EVALUATING BENCHMARKS...")
-    evaluate_benchmark_strategies_batch(args, info, vec_env, agents, best_idx, n_test, folder_name=image_folder_name, c=c, gpu=gpu) # RE-WRITE
+    evaluate_benchmark_strategies_batch(args, info, vec_env, agents, best_idx, n_test, folder_name=image_folder_name, c=c, gpu=gpu)
 
     vec_env.close()
+
+    # VISUALIZE THE STRATEGIES
+    print("VISUALIZING THE STRATEGIES...")
+    visualize_strategies(outdir, n_test=n_test, randomize_start=randomize_start, save_mode=True)
 
 
 def sample_strategies(agent, env_function, args, info, n_test):
@@ -891,6 +893,7 @@ def show_action_grid(bid_1, ask_1, bid_2, ask_2, t, q, save_mode, folder_name):
 
     if save_mode:
         plt.savefig(folder_name + "/scenario")
+        plt.close()
     else:
         plt.show()
 
@@ -944,6 +947,7 @@ def show_action_diff(bid_diff, ask_diff, t, q, save_mode, folder_name):
 
     if save_mode:
         plt.savefig(folder_name + "/scenario")
+        plt.close()
     else:
         plt.show()
 
@@ -1025,6 +1029,7 @@ def evaluate_benchmark_strategies_batch(args, info, env, agents, best_idx, n_tes
 
     if save_mode:
         plt.savefig(folder_name + "/" "box_plot_benchmarking")
+        plt.close()
     else:
         plt.show()
 
@@ -1104,7 +1109,6 @@ def evaluate_multiple_agents_batch(args, env, agents, n_test, n_states = 10000, 
     # Get the rewards of all the agents
     for i, agent in enumerate(agents):
         with agent.eval_mode():
-            print("\tagent", i+1)
             rewards.append(compute_reward_agent_batch(agent, env, n_test, args["T"]/args["dt"]).reshape(-1) / args["reward_scale"])
 
             q_value = 0
@@ -1140,6 +1144,7 @@ def evaluate_multiple_agents_batch(args, env, agents, n_test, n_states = 10000, 
 
     if save_mode:
         plt.savefig(folder_name + "/box_plot_different_runs")
+        plt.close()
     else:
         plt.show()
 
@@ -1325,15 +1330,13 @@ def get_opt_action_matrix(statess, Q, args, agents):
     # For every combination of inventory level and time, find the best
     # action based on the given states
     for i, q in enumerate(q_s):
-        print("\t\tInventory:", q)
         for j, t in enumerate(t_s):
-            # print("\t\t\tTime:", t)
             for states in statess:
                 for state in states:
                     # Normalize
                     state[0] = q / 100
                     state[1] = t / args["T"]
-            # print(statess)
+
             action = mean_opt_action(statess, agents)
 
             # Translate to depths
@@ -1382,6 +1385,7 @@ def show_opt_action(actions_bid, actions_ask, t_s, q_s, folder_name, suffix=None
 
     if save_mode:
         plt.savefig(folder_name + "/bid_heat_" + suffix)
+        plt.close()
     else:
         plt.show()
     
@@ -1399,6 +1403,7 @@ def show_opt_action(actions_bid, actions_ask, t_s, q_s, folder_name, suffix=None
 
     if save_mode:
         plt.savefig(folder_name + "/ask_heat_" + suffix)
+        plt.close()
     else:
         plt.show()
 
@@ -1439,8 +1444,6 @@ def show_strategies_batch(agents, env, info, args, n_states = None, Q = 3, folde
     else:
         statess = [env.reset() for i in range(n_states)]
         suffix = "randomized_" + str(n_states)
-    
-    print("\t" + suffix)
     
     actions_bid, actions_ask, t_s, q_s = get_opt_action_matrix(statess, Q, args, agents)
 
@@ -1526,6 +1529,7 @@ def plot_training_r_q_l(estimate_names, info, folder_name = None, save_mode = Tr
 
     if save_mode:
         plt.savefig(folder_name + "/training_graph")
+        plt.close()
     else:
         plt.show()
 
@@ -1566,11 +1570,9 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
     env_function = get_env_function()
     vec_env = setup_batch_env(args, env_function, num_envs=info["num_envs"])
     for model_name in model_names:
-        print("\tLoading:", model_name)
         agents.append(load_agent(setup_ddqn_agent(vec_env, info, gpu), model_name))
 
-    # # PLOT THE MEAN STRATEGY WITH CI
-    print("\tMEAN...", end="")
+    # PLOT THE MEAN STRATEGY WITH CI
     Qs, Xs, Vs = sample_strategies_mean(agents, env_function, args, info, n_test)
 
     fig_mean, (q_axis, x_axis, v_axis) = plt.subplots(1, 3, figsize=(21, 7))
@@ -1617,6 +1619,7 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
 
     if save_mode:
         plt.savefig(image_folder_name + "/visualization_mean")
+        plt.close()
     else:
         plt.show()
 
@@ -1625,7 +1628,6 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
     fig_all, (q_axis, x_axis, v_axis) = plt.subplots(1, 3, figsize=(21, 7))
 
     for i, agent in enumerate(agents):
-        print("\tRUN " + str(i+1) + "...")
         Qs, Xs, Vs = sample_strategies(agent, env_function, args, info, n_test)
 
         q_mean = np.mean(Qs, axis=0)    
@@ -1665,6 +1667,7 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
 
     if save_mode:
         plt.savefig(image_folder_name + "/visualization_all")
+        plt.close()
     else:
         plt.show()
 
@@ -1712,14 +1715,11 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
 
     statess = [env.reset() for _ in range(n_resets)]
     for n, states in enumerate(statess):
-        print("\tReset", n)
-
         std_matrix = np.zeros((2 * Q + 1, int(args["T"] / args["dt"] + 1)))
         unique_matrix = std_matrix.copy()
         error_matrix = std_matrix.copy()
 
         for i, q in enumerate(q_s):
-            print("\t\tInventory:", q)
             for j, t in enumerate(t_s):
                     for state in states:
                         state[0] = q / 100
@@ -1754,6 +1754,7 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
 
     if save_mode:
         plt.savefig(folder_name + "/heatmap_standard_deviation" + suffix)
+        plt.close()
     else:
         plt.show()
 
@@ -1766,6 +1767,7 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
 
     if save_mode:
         plt.savefig(folder_name + "/heatmap_n_unique_actions" + suffix)
+        plt.close()
     else:
         plt.show()
 
@@ -1778,6 +1780,7 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
 
     if save_mode:
         plt.savefig(folder_name + "/heatmap_n_errors" + suffix)
+        plt.close()
     else:
         plt.show()
 
@@ -1916,7 +1919,6 @@ def setup_batch_env(args, env_function, num_envs=1, seed=0):
         ]
     )
     
-    # print("\tBatch_env setup in",str(timedelta(seconds=round((time.time() - start), 2))))
 
     return vec_env
 
@@ -1954,223 +1956,3 @@ def get_env_function():
         return env
 
     return deep_env_function
-    
-
-CENT_TO_DOLLAR = 100
-
-if __name__ == "__main__":
-    if False:
-        # TRAINING BATCH BINNED
-        outdir = "results/mc_model_deep/"
-
-        folder_name = "binned_testing_rs_01"
-
-        outdir += folder_name + "/"
-
-        n_train = int(5e6)      # [number of time steps]
-        n_test = int(1e3)       # [num<ber of episodes]
-        n_runs = 2
-
-        # Unbinned
-        # args = {"dt": 5, "T": 25, "phi": 0, "reward_scale": 100, "randomize_reset": True, "default_order_size": 25}
-
-        # Binned
-        args = {"dt": 1, "T": 1000, "phi": 0, "reward_scale": 0.1, "randomize_reset": True, "default_order_size": 5}
-
-        num_episodes = int(n_train / (args["T"] / args["dt"]))              # the number of episodes the agent will be trained for
-
-        print("TRAINING FOR", n_train, "STEPS (=" + str(num_episodes) + " EPISODES)", n_runs, "TIME(S)")
-
-        info = {
-            "hidden_size": 64, 
-            "exploration_initial_eps": 1, 
-            "exploration_final_eps": 0.05, 
-            "exploration_fraction": 0.5,
-            "learning_rate_dqn": 1e-4, 
-            "buffer_size": n_train / 200, "replay_start_size": n_train / 200,   # one two-hundreth
-            "target_update_interval": n_train / 2000, 
-            "update_interval": 4,
-            "minibatch_size": 64,
-            "n_train": n_train, "n_runs": n_runs,
-            "log_interval": n_train / 500,                                     # every thousanth episode
-            "num_estimate": 10000,                                               # how many resets that should be used for getting q_values
-            "n_states": 1,                                                    # the number of states heatmaps are averaged over
-            "num_envs": 10,
-            "reward_scale": args["reward_scale"]
-            }
-
-        gpu = -1
-
-        print("Using", "gpu" if gpu == 0 else "cpu")
-        print("="*40)
-
-        train_multiple_agents_batch(info, args, n_train, outdir, n_runs, gpu=gpu)
-
-        evaluate_DDQN_batch(outdir, n_test=n_test, c=1, Q=15, randomize_start=True)
-
-    if False:
-        # TRAINING BATCH BINNED
-        outdir = "results/mc_model_deep/"
-
-        folder_name = "binned_testing_rs_001"
-
-        outdir += folder_name + "/"
-
-        n_train = int(5e6)      # [number of time steps]
-        n_test = int(1e3)       # [num<ber of episodes]
-        n_runs = 2
-
-        # Unbinned
-        # args = {"dt": 5, "T": 25, "phi": 0, "reward_scale": 100, "randomize_reset": True, "default_order_size": 25}
-
-        # Binned
-        args = {"dt": 1, "T": 1000, "phi": 0, "reward_scale": 0.01, "randomize_reset": True, "default_order_size": 5}
-
-        num_episodes = int(n_train / (args["T"] / args["dt"]))              # the number of episodes the agent will be trained for
-
-        print("TRAINING FOR", n_train, "STEPS (=" + str(num_episodes) + " EPISODES)", n_runs, "TIME(S)")
-
-        info = {
-            "hidden_size": 64, 
-            "exploration_initial_eps": 1, 
-            "exploration_final_eps": 0.05, 
-            "exploration_fraction": 0.5,
-            "learning_rate_dqn": 1e-4, 
-            "buffer_size": n_train / 200, "replay_start_size": n_train / 200,   # one two-hundreth
-            "target_update_interval": n_train / 2000, 
-            "update_interval": 4,
-            "minibatch_size": 64,
-            "n_train": n_train, "n_runs": n_runs,
-            "log_interval": n_train / 500,                                     # every thousanth episode
-            "num_estimate": 10000,                                               # how many resets that should be used for getting q_values
-            "n_states": 1,                                                    # the number of states heatmaps are averaged over
-            "num_envs": 10,
-            "reward_scale": args["reward_scale"]
-            }
-
-        gpu = -1
-
-        print("Using", "gpu" if gpu == 0 else "cpu")
-        print("="*40)
-
-        train_multiple_agents_batch(info, args, n_train, outdir, n_runs, gpu=gpu)
-
-        evaluate_DDQN_batch(outdir, n_test=n_test, c=1, Q=15, randomize_start=True)
-
-    if False:
-        # TRAINING BATCH BINNED
-        outdir = "results/mc_model_deep/"
-
-        folder_name = "binned_full_rs_001_x2_v3"
-
-        outdir += folder_name + "/"
-
-        n_train = int(1e7)      # [number of time steps]
-        n_test = int(1e3)       # [num<ber of episodes]
-        n_runs = 1
-
-        # Unbinned
-        # args = {"dt": 5, "T": 25, "phi": 0, "reward_scale": 100, "randomize_reset": True, "default_order_size": 25}
-
-        # Binned
-        args = {"dt": 1, "T": 1000, "phi": 0, "reward_scale": 0.01, "randomize_reset": True, "default_order_size": 5}
-
-        num_episodes = int(n_train / (args["T"] / args["dt"]))              # the number of episodes the agent will be trained for
-
-        print("TRAINING FOR", n_train, "STEPS (=" + str(num_episodes) + " EPISODES)", n_runs, "TIME(S)")
-
-        info = {
-            "hidden_size": 64, 
-            "exploration_initial_eps": 1, 
-            "exploration_final_eps": 0.05, 
-            "exploration_fraction": 0.5,
-            "learning_rate_dqn": 1e-3, 
-            "buffer_size": n_train / 200, "replay_start_size": n_train / 200,   # one two-hundreth
-            "target_update_interval": n_train / 2000, 
-            "update_interval": 4,
-            "minibatch_size": 64,
-            "n_train": n_train, "n_runs": n_runs,
-            "log_interval": n_train / 1000,                                     # every thousanth episode
-            "num_estimate": 10000,                                               # how many resets that should be used for getting q_values
-            "n_states": 2,                                                    # the number of states heatmaps are averaged over
-            "num_envs": 10,
-            "reward_scale": args["reward_scale"]
-            }
-
-        gpu = -1
-
-        print("Using", "gpu" if gpu == 0 else "cpu")
-        print("="*40)
-
-        train_multiple_agents_batch(info, args, n_train, outdir, n_runs, gpu=gpu)
-
-        evaluate_DDQN_batch(outdir, n_test=n_test, c=1, Q=15, randomize_start=True)
-
-        visualize_strategies(outdir, n_test=n_test, randomize_start=True, save_mode=True)
-
-    if False:
-        # TRAINING BATCH BINNED
-        outdir = "results/mc_model_deep/"
-
-        folder_name = "binned_rs_001_full_x8"
-
-        outdir += folder_name + "/"
-
-        n_train = int(1e7)      # [number of time steps]
-        n_test = int(1e3)       # [num<ber of episodes]
-        n_runs = 8
-
-        # Unbinned
-        # args = {"dt": 5, "T": 25, "phi": 0, "reward_scale": 100, "randomize_reset": True, "default_order_size": 25}
-
-        # Binned
-        args = {"dt": 1, "T": 1000, "phi": 0, "reward_scale": 0.01, "randomize_reset": True, "default_order_size": 5}
-
-        num_episodes = int(n_train / (args["T"] / args["dt"]))              # the number of episodes the agent will be trained for
-
-        print("TRAINING FOR", n_train, "STEPS (=" + str(num_episodes) + " EPISODES)", n_runs, "TIME(S)")
-
-        info = {
-            "hidden_size": 64, 
-            "exploration_initial_eps": 1, 
-            "exploration_final_eps": 0.05, 
-            "exploration_fraction": 0.5,
-            "learning_rate_dqn": 7e-5, 
-            "buffer_size": n_train / 200, "replay_start_size": n_train / 200,   # one two-hundreth
-            "target_update_interval": n_train / 2000, 
-            "update_interval": 4,
-            "minibatch_size": 64,
-            "n_train": n_train, "n_runs": n_runs,
-            "log_interval": n_train / 1000,                                     # every thousanth episode
-            "num_estimate": 10000,                                               # how many resets that should be used for getting q_values
-            "n_states": 10,                                                    # the number of states heatmaps are averaged over
-            "num_envs": 10,
-            "reward_scale": args["reward_scale"]
-            }
-
-        gpu = -1
-
-        print("Using", "gpu" if gpu == 0 else "cpu")
-        print("="*40)
-
-        # train_multiple_agents_batch(info, args, n_train, outdir, n_runs, gpu=gpu)
-
-        # evaluate_DDQN_batch(outdir, n_test=n_test, c=1, Q=15, randomize_start=True)
-
-        visualize_strategies(outdir, n_test=n_test, randomize_start=True, save_mode=True)
-
-
-    if False:
-        # EVALUATING BATCH
-        outdir = "results/mc_model_deep/"
-
-        folder_name = "binned_rs_001_full_x8"
-
-        outdir += folder_name + "/"
-
-        n_test = int(1e4)       # [number of episodes]
-        randomize_start = True
-
-        evaluate_DDQN_batch(outdir, n_test=n_test, c=1, Q=15, randomize_start=randomize_start)
-
-        # visualize_strategies(outdir, n_test=n_test, randomize_start=randomize_start, save_mode=True)
