@@ -15,8 +15,7 @@ from datetime import timedelta
 
 def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
                        epsilon_start=1, epsilon_end=0.05, epsilon_cutoff=0.25,
-                       beta_start=1, beta_end=0.01, beta_cutoff=0.5,
-                       gamma=1, exploring_starts=True):
+                       gamma=1):
     """
     tabular_Q_learning is a function that performs tabular Q-learning.
 
@@ -36,16 +35,8 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
         the value at which epsilon ends
     epsilon_cutoff : float (0<x≤1)
         the proportion of the total number of episodes at which the epsilon_end is reached
-    beta_start : float (0<x≤1)
-        the value at which beta starts
-    beta_end : float (0<x≤1)
-        the value at which beta ends
-    beta_cutoff : float (0<x≤1)
-        the proportion of the total number of episodes at which the beta_end is reached
     gamma : float (0<gamma≤1)
         the discount factor in Q-learning
-    exploring_starts : bool
-        boolean indicating whether to use exploring starts (True) or not (False)
 
     Returns
     -------
@@ -76,9 +67,6 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
 
     alpha = alpha_start
 
-    # n_rewards = 0
-    # n_nonzero_rewards = 0
-
     # ----- SIMULATING -----
 
     start_time = t.time()
@@ -89,31 +77,13 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
         epsilon = linear_decreasing(episode, n, epsilon_start, epsilon_end, epsilon_cutoff)
 
         # update learning rate
-        # alpha = linear_decreasing(episode, n, alpha_start, alpha_end, alpha_cutoff)
         alpha = exponential_decreasing(alpha, factor=decreasing_factor)
-
-        # update exploring starts
-        beta = linear_decreasing(episode, n, beta_start, beta_end, beta_cutoff)
-
-        # Exploring starts
-        if exploring_starts is True:
-            if random.random() < beta:
-                env.Q_0 = env.observation_space.sample()[0]  # Sample Q_t from the observation space
-            else:
-                env.Q_0 = 0
-        else:
-            env.Q_0 = 0
 
         # Reset the environment
         env.reset()
         episode_reward = 0
 
         while env.t < env.T:  # As long as the episode isn't over
-            # ===== DEBUGGING STATE SPACE =====
-            # print("inventory:", env.Q_t)
-            # print("inventory level:", env.state()[0])
-            # print("="*20)
-
             state = env.state()
 
             explore = random.random() < epsilon
@@ -123,22 +93,11 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
             else:  # Maximum otherwise
                 action = tuple_action_to_dict(np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape))
 
-            # TODO: tuple_action_to_dict function
             new_state, action_reward = env.step(action)  # Get the new state and the reward
 
             action = dict_action_to_tuple(action)
 
-            episode_reward += action_reward  # * (gamma ** env.t)  # Discounting with gamma
-            
-            # ===== SPARSITY OF REWARDS =====
-            # n_rewards += 1
-            # n_nonzero_rewards += action_reward != 0
-
-            # ===== DEBUGGING REWARDS =====
-            # print("V_t-1:", env.X_t_previous + env.H_t_previous)
-            # print("V_t:", env.X_t + env.H_t)
-            # print("R_t:", action_reward)
-            # print("="*20)
+            episode_reward += action_reward
 
             state_action_count[state][action] += 1
 
@@ -153,8 +112,8 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
         Q_zero_grouped.append(np.max(Q_tab[(0, 1)]))
 
         # Printing every 1% of total episodes
-        if (episode + 1) % (0.01 * n) == 0:
-            percentage = "{:.0%}".format(episode / n)
+        if (episode + 1) % (0.20 * n) == 0:
+            percentage = "{:.0%}".format((episode + 1) / n)
 
             time_remaining = str(timedelta(seconds=round((t.time() - start_time) / (episode + 1) * (n - episode - 1), 2)))
 
@@ -169,10 +128,6 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005,
 
             reward_grouped = []
             Q_zero_grouped = []
-
-    # print("\t\tThe discounted average reward over all episodes is:", np.mean(rewards_average))
-
-    # print("\t\t", n_nonzero_rewards, "of the total", n_rewards, "were non-zero")
 
     return Q_tab, rewards_average, Q_zero_average, x_values
 
