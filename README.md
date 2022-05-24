@@ -48,7 +48,7 @@ The code is split into three main categories:
 ```
 
 ### Credits
-The code in code/environments/mc_model/lob_utils/ as well as code/environments/mc_model/mc_lob_simulation_class.py was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can check her licentiate thesis out [here](google.com). LÄNK! Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). Algorithmic trading with Markov chains.). 
+The code in `code/environments/mc_model/lob_utils/` as well as `code/environments/mc_model/mc_lob_simulation_class.py` was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can check her licentiate thesis out [here](google.com). LÄNK! Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). Algorithmic trading with Markov chains.). 
 
 --------
 
