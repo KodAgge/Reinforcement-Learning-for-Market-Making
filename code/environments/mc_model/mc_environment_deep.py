@@ -6,7 +6,6 @@ import numpy as np
 import time
 from environments.mc_model.lob_utils.lob_functions import LOB
 from environments.mc_model.mc_lob_simulation_class import MarkovChainLobModel
-from utils.mc_model.mc_rl_plotting import plot_LOB
 import matplotlib.pyplot as plt
 import torch as th
 import dill as pickle
@@ -58,7 +57,7 @@ class MonteCarloEnvDeep(gym.Env, ABC):
     """
 
     def __init__(self, num_levels=10, include_spread_levels=True, max_quote_depth=5,
-                 T=5000, dt=1, mm_priority=True, phi=1e-3, reward_scale =1, pre_run_on_start=False,
+                 T=5000, dt=1, mm_priority=True, phi=0, reward_scale =1, pre_run_on_start=False,
                  pre_run_iterations=int(1e4), MO_action=False, debug=False, randomize_reset = True,
                  default_order_size = 5):
 
