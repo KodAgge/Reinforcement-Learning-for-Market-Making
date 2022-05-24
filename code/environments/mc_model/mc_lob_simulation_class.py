@@ -167,7 +167,8 @@ class MarkovChainLobModel:
         """
         self.next_event = {}
         self.update_current_rates_new()
-        ts = np.random.exponential(1 / np.array(list(self.current_rates.values())))
+        with np.errstate(divide='ignore'):
+            ts = np.random.exponential(1 / np.array(list(self.current_rates.values())))
         ri = np.argmin(ts)
         self.next_event["time"] = ts[ri]
         k = list(self.current_rates.keys())[ri]
