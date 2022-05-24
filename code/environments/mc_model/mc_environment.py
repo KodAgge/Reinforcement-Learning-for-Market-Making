@@ -6,7 +6,6 @@ import numpy as np
 import time
 from environments.mc_model.lob_utils.lob_functions import LOB
 from environments.mc_model.mc_lob_simulation_class import MarkovChainLobModel
-from utils.mc_model.mc_rl_plotting import plot_LOB
 import matplotlib.pyplot as plt
 import torch as th
 import pickle
