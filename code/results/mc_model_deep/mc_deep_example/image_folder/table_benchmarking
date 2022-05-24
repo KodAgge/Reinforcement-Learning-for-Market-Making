@@ -1,0 +1,6 @@
+strategy           mean reward    std reward    reward per action    reward per second
+---------------  -------------  ------------  -------------------  -------------------
+constant (d=1)         -0.0022     0.165654             -2.2e-05             -2.2e-05
+random                 -0.0054     0.0662634            -5.4e-05             -5.4e-05
+DDQN (best run)         0.0166     0.0549767             0.000166             0.000166
+DDQN (mean)             0.0055     0.070461              5.5e-05              5.5e-05

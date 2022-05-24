@@ -1,0 +1,27 @@
+MODEL PARAMETERS
+dt : 1
+T : 100
+num_levels : 10
+default_order_size : 5
+max_quote_depth : 5
+reward_scale : 0.1
+randomize_reset : True
+
+TRAINING PARAMETERS
+hidden_size : 64
+buffer_size : 500.0
+replay_start_size : 500.0
+target_update_interval : 1000.0
+update_interval : 2
+minibatch_size : 16
+exploration_initial_eps : 1
+exploration_final_eps : 0.05
+exploration_fraction : 0.5
+learning_rate_dqn : 0.0001
+num_envs : 10
+n_train : 100000
+n_runs : 4
+reward_scale : 0.1
+log_interval : 1000.0
+num_estimate : 10000
+n_states : 10
