@@ -255,6 +255,7 @@ def evaluate_strategies_multiple_Q(file_names, args, mean_rewards, Q_mean, n_tes
 
     if save_mode:
         plt.savefig("results/mc_model/" + folder_name + "/" "box_plot_benchmarking")
+        plt.close()
     else:
         plt.show()
 
@@ -382,6 +383,7 @@ def compare_Q_learning_runs(file_names, n_test=1e2, folder_mode=False, folder_na
 
     if save_mode:
         plt.savefig("results/mc_model/" + folder_name + "/" "box_plot_different_runs")
+        plt.close()
     else:
         plt.show()
 
@@ -452,6 +454,7 @@ def plot_rewards_multiple(file_names, folder_mode=False, folder_name=None, save_
 
     if save_mode:
         plt.savefig("results/mc_model/" + folder_name + "/" "results_graph")
+        plt.close()
     else:
         plt.show()
 
