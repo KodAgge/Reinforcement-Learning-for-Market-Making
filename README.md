@@ -51,5 +51,5 @@ The code is split into three main categories:
 If you want to contact us to discuss our thesis, reinforcement learning, machine learning, algorithmic trading, or anything else, feel free to send us an email or add us on LinkedIn!
 |        | Linkedin                              |
 |--------|--------------------------------|
-| Simon  | <linkedin.com/in/simoncarlsson> |
-| August | <linkedin.com/in/aregnell>      |
+| Simon  | [linkedin.com/in/simoncarlsson](linkedin.com/in/simoncarlsson) |
+| August | [linkedin.com/in/aregnell](linkedin.com/in/aregnell)      |
