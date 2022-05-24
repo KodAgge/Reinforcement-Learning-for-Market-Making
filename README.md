@@ -1,4 +1,4 @@
-# Reinforcement-Learning-for-Market-Making
+# Reinforcement Learning for Market Making
 
 This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken and can be found [here](https://www.google.com). FIX LINK
 
