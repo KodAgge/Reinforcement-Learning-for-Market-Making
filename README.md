@@ -54,7 +54,7 @@ The code in `code/environments/mc_model/lob_utils/` as well as `code/environment
 
 ## Our contact information :mailbox:
 If you want to contact us to discuss our thesis, reinforcement learning, machine learning, algorithmic trading, or anything else, feel free to add us on LinkedIn!
-|        | Linkedin                              |
+|        | LinkedIn                              |
 |--------|--------------------------------|
 | Simon  | [linkedin.com/in/simoncarlsson](linkedin.com/in/simoncarlsson) |
 | August | [linkedin.com/in/aregnell](linkedin.com/in/aregnell)      |
