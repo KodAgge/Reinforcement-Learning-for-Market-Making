@@ -47,6 +47,7 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
         plt.show()
     else:
         plt.savefig(file_path + "opt_bid_heat")
+        plt.close()
 
     plt.figure()
     ser = pd.Series(list(optimal_ask.values()),
@@ -63,6 +64,7 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
         plt.show()
     else:
         plt.savefig(file_path + "opt_ask_heat")
+        plt.close()
 
     plt.figure()
     ser = pd.Series(list(optimal_MO.values()),
@@ -79,6 +81,7 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
         plt.show()
     else:
         plt.savefig(file_path + "opt_mo_heat")
+        plt.close()
 
 
 def heatmap_Q_std(Q_std, file_path = None):
@@ -96,6 +99,7 @@ def heatmap_Q_std(Q_std, file_path = None):
         plt.show()
     else:
         plt.savefig(file_path + "heatmap_of_std")
+        plt.close()
 
 
 def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique=True, file_path = None):
@@ -164,8 +168,10 @@ def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique=True, file_path = None):
     else:
         if n_unique:
             plt.savefig(file_path + "n_unique_opt_actions")
+            plt.close()
         else:
             plt.savefig(file_path + "n_errors_compared_to_mean")
+            plt.close()
 
 
 def show_Q(Q_tab, file_path = None):
@@ -207,6 +213,7 @@ def show_Q(Q_tab, file_path = None):
         plt.show()
     else:
         plt.savefig(file_path + "opt_bid_strategy")
+        plt.close()
 
     ser = pd.Series(list(optimal_ask.values()),
                     index=pd.MultiIndex.from_tuples(optimal_ask.keys()))
@@ -223,6 +230,7 @@ def show_Q(Q_tab, file_path = None):
         plt.show()
     else:
         plt.savefig(file_path + "opt_ask_strategy")
+        plt.close()
 
 
 def load_Q(filename, default=True):
