@@ -1,6 +1,6 @@
 # Reinforcement-Learning-for-Market-Making
 
-This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken and can be found [here](google.com). FIX LINK
+This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken and can be found [here](https://www.google.com). FIX LINK
 
 ## Thesis
 Our thesis 
@@ -48,7 +48,7 @@ The code is split into three main categories:
 ```
 
 ### Credits
-The code in `code/environments/mc_model/lob_utils/` as well as `code/environments/mc_model/mc_lob_simulation_class.py` was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can read her licentiate thesis [here](google.com). LÄNK! Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). Algorithmic trading with Markov chains.). 
+The code in `code/environments/mc_model/lob_utils/` as well as `code/environments/mc_model/mc_lob_simulation_class.py` was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can read her licentiate thesis [here](https://www.google.com). LÄNK! Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). Algorithmic trading with Markov chains.). 
 
 --------
 
@@ -56,5 +56,5 @@ The code in `code/environments/mc_model/lob_utils/` as well as `code/environment
 If you want to contact us to discuss our thesis, reinforcement learning, machine learning, algorithmic trading, or anything else, feel free to add us on LinkedIn!
 |        | LinkedIn                              |
 |--------|--------------------------------|
-| Simon  | [linkedin.com/in/simoncarlsson](linkedin.com/in/simoncarlsson) |
-| August | [linkedin.com/in/aregnell](linkedin.com/in/aregnell)      |
+| Simon  | [linkedin.com/in/simoncarlsson](https://www.linkedin.com/in/simoncarlsson) |
+| August | [linkedin.com/in/aregnell](https://www.linkedin.com/in/aregnell)      |
