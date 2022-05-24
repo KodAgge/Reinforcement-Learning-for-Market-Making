@@ -1,0 +1,16 @@
+MODEL PARAMETERS
+dt : 1
+T : 100
+num_time_buckets : 100
+kappa : 3
+num_levels : 10
+default_order_size : 5
+max_quote_depth : 5
+
+Q-LEARNING PARAMETERS
+epsilon_start : 1
+epsilon_end : 0.05
+epsilon_cutoff : 0.5
+alpha_start : 0.5
+alpha_end : 0.001
+n : 3000.0

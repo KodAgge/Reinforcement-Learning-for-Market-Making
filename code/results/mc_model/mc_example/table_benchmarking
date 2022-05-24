@@ -1,0 +1,6 @@
+strategy                 mean reward    std reward
+---------------------  -------------  ------------
+constant (d=1)              1.77           8.81346
+random                     -0.423333       7.72123
+Q_learning (best run)      -0.48           5.63941
+Q_learning (average)       -0.79           5.94019
