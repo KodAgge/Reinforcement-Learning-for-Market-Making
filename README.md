@@ -2,9 +2,7 @@
 
 This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken and can be found **[here](https://www.google.com)**. FIX LINK
 
-
-# Executive Summary
-Superkort vad vi har gjort
+In this project we have used tabular and deep reinforcement learning methods in order to find optimal market making strategies. Continue reading for more!
 
 ## What is Reinforcement Learning?
 For anyone not familiar with reinforcement learning (RL), it's a concept that stems from the idea of how humans and animals learn: by interacting in our environment and learning from experience. RL has lately gotten a lot of attention, and one of the most famous examples is DeepMind's AlphaGo:
