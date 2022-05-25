@@ -16,13 +16,11 @@ class MonteCarloEnv(gym.Env, ABC):
     """
     Parameters
     ----------
-    include_spread_levels : bool
-        argument passed on to LOB class, whether to include the spread levels in the LOB arrays
-    ob_start : np.array
-        the starting order book data. includes ask, spread, and initial volumes
     num_levels : int
         number of price levels to consider in LOB. num_levels = number of price levels above best bid and best ask to
         include
+    include_spread_levels : bool
+        argument passed on to LOB class, whether to include the spread levels in the LOB arrays
     max_quote_depth : int
         number of ticks away from best bid and best ask the MM can place its orders
     num_inv_buckets : int
@@ -45,17 +43,25 @@ class MonteCarloEnv(gym.Env, ABC):
         whether to perform a pre-run as an object is created / the environment is reset
     pre_run_iterations : int
         number of simulation events to include in the pre-run
-    simple_obs_space : bool
-        TA BORT?
     MO_action : bool
         whether or not the MM can put MOs
     debug : bool
         whether or not information for debugging should be printed during simulation
+    randomize_reset : bool
+        if the LOB should get a random state after every reset
+    default_order_size : int
+        the size of the orders the MM places
+    t_0 : bool
+        if the time should start on 0 or 1
+
+    Returns
+    -------
+    None
     """
 
     def __init__(self, num_levels=10, include_spread_levels=True, max_quote_depth=5, num_inv_buckets=3,
                  T=5000, dt=1, mm_priority=True, num_time_buckets=5, kappa=3, phi=0, pre_run_on_start=False,
-                 pre_run_iterations=int(1e4), simple_obs_space=True, MO_action=False, debug=False, randomize_reset = False,
+                 pre_run_iterations=int(1e4), MO_action=False, debug=False, randomize_reset = False,
                  default_order_size = 5, t_0 = True):
 
         super(MonteCarloEnv, self).__init__()
@@ -73,7 +79,6 @@ class MonteCarloEnv(gym.Env, ABC):
 
         self.mm_priority = mm_priority
         self.num_time_buckets = num_time_buckets
-        self.simple_obs_space = simple_obs_space
         self.MO_action = MO_action
 
         self.buy_mo_sizes = list()
@@ -114,6 +119,20 @@ class MonteCarloEnv(gym.Env, ABC):
 
 
     def load_database(self, file_name = "environments/mc_model/starts_database/start_bank_n100000.pkl"):
+        """
+        loads a database with random LOB states
+
+        Parameters
+        ----------
+        file_name : str
+            where the database is stored
+
+        Returns
+        -------
+        lob_data_base : list
+            a list with random LOB states
+        """
+
         file = open(file_name, "rb")
 
         lob_data_base = pickle.load(file)
@@ -132,7 +151,16 @@ class MonteCarloEnv(gym.Env, ABC):
         action_space['market order'].
 
         Combines the quotes and market order into a dictionary (gym.spaces.dict.Dict object).
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
+
         low = np.array([1, 1])
         high = np.array([self.max_quote_depth, self.max_quote_depth])
         spaces = {
@@ -145,6 +173,15 @@ class MonteCarloEnv(gym.Env, ABC):
     def _get_action_space_shape(self):
         """
         Returns the shape of the action space as a tuple
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        shape : tuple
+            the shape of the action space
         """
 
         depths = self.action_space["depths"].high - self.action_space["depths"].low + 1
@@ -155,28 +192,34 @@ class MonteCarloEnv(gym.Env, ABC):
     def set_observation_space(self):
         """
         Creates the observation space
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
-        if self.simple_obs_space:
-            self.observation_space = gym.spaces.Box(low=np.array([-self.num_inv_buckets, 1]),
-                                                    high=np.array([self.num_inv_buckets, self.num_time_buckets]),
-                                                    dtype=np.int16)
-        else:
-            obs_dim = 2 + 2 * self.num_levels
-            low = -np.inf * np.ones(obs_dim)
-            high = np.inf * np.ones(obs_dim)
-            self.observation_space = gym.spaces.Box(low=low, high=high)
+
+        self.observation_space = gym.spaces.Box(low=np.array([-self.num_inv_buckets, 1]),
+                                                high=np.array([self.num_inv_buckets, self.num_time_buckets]),
+                                                dtype=np.int16)
 
 
     def state(self):
         """
         Returns the current observable state
 
+        Parameters
+        ----------
+        None
+
         Returns
         -------
         obs : tuple
             the observation space in terms of (time_varible, inventory_variable)
         """
-
 
         # New inventory variable
         inventory_variable = np.min([np.ceil(self.Q_t / self.kappa), self.num_inv_buckets]) * (self.Q_t > 0) + \
@@ -190,19 +233,21 @@ class MonteCarloEnv(gym.Env, ABC):
         return int(inventory_variable), int(time_variable)
 
 
-    def state_deep(self):
-        lob = self.mc_model.ob.data[:, 1:].flatten()
-        inv = self.Q_t
-        t = self.t
-        state = tuple(np.concatenate([np.array([inv, t]), lob]))
-        return th.from_numpy(np.asarray(state)).float().unsqueeze(0)
-
-
     def step(self, action: dict):
         """
+        Receives an action (bid and ask depths) and takes a step in the environment accordingly
 
-        :param action:
-        :return:
+        Parameters
+        ----------
+        action : dict
+            the bid and ask depths
+
+        Returns
+        -------
+        obs : tuple
+            the observation space in terms of (time_varible, inventory_variable)
+        reward : float
+            the reward received at time t+1
         """
 
         self.X_t_previous = self.X_t
@@ -414,14 +459,23 @@ class MonteCarloEnv(gym.Env, ABC):
         else:
             self.H_t = -self.mc_model.ob.buy_n(-self.Q_t)
 
-        if self.simple_obs_space:
-            return self.state(), self._get_reward()
-        else:
-            return self.state_deep(), self._get_reward()
+        return self.state(), self._get_reward()
 
 
     def _get_reward(self):
-        # Added running inventory penalty
+        """
+        Returns the reward
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        reward : float
+            the reward
+        """
+
         return self.X_t + self.H_t - (self.X_t_previous + self.H_t_previous) - self.phi * self.Q_t ** 2
 
 
@@ -433,11 +487,29 @@ class MonteCarloEnv(gym.Env, ABC):
         ----------
         n_steps : int
             the number of events that should be simulated in the LOB
+
+        Returns
+        -------
+        None
         """
+
         self.mc_model.simulate(int(n_steps))
 
 
     def reset(self, randomized = None):
+        """
+        Reset the environment. Chooses a random LOB state if prompted.
+
+        Parameters
+        ----------
+        randmoized : bool
+            if the LOB state should be randomized
+
+        Returns
+        -------
+        None
+        """
+
         self.X_t = 0
         self.t = 0
         self.Q_t = 0
@@ -457,6 +529,19 @@ class MonteCarloEnv(gym.Env, ABC):
 
 
     def render(self, mode='human'):
+        """
+        Prints useful stats of the environment
+
+        Parameters
+        ----------
+        mode : str
+            ??
+
+        Returns
+        -------
+        None
+        """
+
         print('=' * 40)
         print(f'End of t = {self.t}')
         print(f'Current bid-ask = {self.mc_model.ob.bid}-{self.mc_model.ob.ask}')
@@ -469,6 +554,19 @@ class MonteCarloEnv(gym.Env, ABC):
 
 
     def print_simulation_results(self, simulation_results):
+        """
+        Prints the events after a simulation
+
+        Parameters
+        ----------
+        simulation_results : dict
+            a dictionary with events
+
+        Returns
+        -------
+        None
+        """
+
         for key in simulation_results.keys():
             if key == "event":
                 print("\n event : ", end="")
@@ -479,6 +577,19 @@ class MonteCarloEnv(gym.Env, ABC):
 
 
     def print_MO_results(self, simulation_results, cash, printing=True):
+        """
+        Prints the MOs after a simulation. Used for debugging.
+
+        Parameters
+        ----------
+        simulation_results : dict
+            a dictionary with events
+
+        Returns
+        -------
+        None
+        """
+
         if 2 in simulation_results["event"] or 3 in simulation_results["event"]:
             if printing:
                 print("=" * 40)
@@ -514,95 +625,29 @@ class MonteCarloEnv(gym.Env, ABC):
 
 
 def init_LOB(num_levels=10, init_ask=10000, init_spread=1, init_volume=1):
+    """
+    Initiates a neutral LOB state and returns it
+
+    Parameters
+    ----------
+    num_levels : int
+        how many bid and ask levels there should be
+    init_ask : int
+        the starting ask price
+    init_spread : int
+        the starting spread
+    init_volume : int
+        the starting volume at all depths
+
+    Returns
+    -------
+    lob : np.array
+        the LOB state
+    """
+
     lob = np.zeros((2, num_levels + 1), dtype=int)
     lob[0, 0] = init_ask
     lob[1, 0] = -init_spread
     lob[0, init_spread:] = init_volume
     lob[1, init_spread:] = -init_volume
     return lob
-
-
-def showcase_plot(mid_prices, Q_t, X_t, include_legends=True):
-    fig, (price, inventory, cash) = plt.subplots(1, 3, figsize=(21, 7))
-
-    price.set_title("mid price")
-    inventory.set_title("Q_t")
-    cash.set_title("X_t")
-
-    for i in range(len(mid_prices)):
-        price.plot(mid_prices[i], label="run " + str(i + 1))
-        inventory.plot(Q_t[i], label="run " + str(i + 1))
-        cash.plot(X_t[i], label="run " + str(i + 1))
-
-    if include_legends:
-        price.legend()
-        inventory.legend()
-        cash.legend()
-
-    plt.show()
-
-
-def showcase_plot_CI(mid_prices, Q_t, X_t, include_legends=True):
-    fig, (price, inventory, cash) = plt.subplots(1, 3, figsize=(21, 7))
-
-    price.set_title("mid price")
-    inventory.set_title("Q_t")
-    cash.set_title("X_t")
-
-    for i in range(len(mid_prices)):
-        price.plot(mid_prices[i], label="run " + str(i + 1))
-        inventory.plot(Q_t[i], label="run " + str(i + 1))
-        cash.plot(X_t[i], label="run " + str(i + 1))
-
-    if include_legends:
-        price.legend()
-        inventory.legend()
-        cash.legend()
-
-    plt.show()
-
-
-def mid_price_comparison(mid_prices_natural, mid_prices_mm_sym, mid_prices_mm_asym):
-    """
-    Function to plot a comparison between different market making strategies
-    """
-
-    fig, (natural, mm_sym, mm_asymmetrical) = plt.subplots(1, 3, figsize=(21, 7))
-
-    natural.set_title("No market making")
-    mm_sym.set_title("Symmetrical market making")
-    mm_asymmetrical.set_title("Asymmetrical market making")
-
-    natural_mid_std = np.std(mid_prices_natural, axis=0)
-    natural_mid_mean = np.mean(mid_prices_natural, axis=0)
-
-    sym_mid_mean = np.mean(mid_prices_mm_sym, axis=0)
-    sym_mid_std = np.std(mid_prices_mm_sym, axis=0)
-
-    asym_mid_mean = np.mean(mid_prices_mm_asym, axis=0)
-    asym_mid_std = np.std(mid_prices_mm_asym, axis=0)
-
-    natural.plot(natural_mid_mean, color="purple")
-    natural.fill_between(list(range(len(natural_mid_mean))), natural_mid_mean - natural_mid_std, natural_mid_mean + natural_mid_std, alpha=0.3, color="purple")
-    print(f'std natural = {natural_mid_std[-1]}')
-    natural.set_xlabel("t")
-    natural.set_ylabel("price")
-    natural.set_ylabel("mid price")
-    natural.get_yaxis().get_major_formatter().set_useOffset(False)
-    mm_sym.set_ylim([np.min([np.min(sym_mid_mean[:-1] - sym_mid_std[:-1]), np.min(natural_mid_mean - natural_mid_std)]), np.max([np.max(sym_mid_mean[:-1] + sym_mid_std[:-1]), np.max(natural_mid_mean + natural_mid_std)])])
-
-    mm_sym.plot(sym_mid_mean[:-1], color="purple")
-    mm_sym.fill_between(list(range(len(sym_mid_mean[:-1]))), sym_mid_mean[:-1] - sym_mid_std[:-1], sym_mid_mean[:-1] + sym_mid_std[:-1], alpha=0.3, color="purple")
-    mm_sym.set_xlabel("t")
-    print(f'std mm sym = {sym_mid_std[-2]}')
-    mm_sym.set_ylabel("price")
-    mm_sym.set_ylabel("mid price")
-    mm_sym.get_yaxis().get_major_formatter().set_useOffset(False)
-    mm_sym.set_ylim([np.min([np.min(sym_mid_mean[:-1] - sym_mid_std[:-1]), np.min(natural_mid_mean - natural_mid_std)]), np.max([np.max(sym_mid_mean[:-1] + sym_mid_std[:-1]), np.max(natural_mid_mean + natural_mid_std)])])
-
-    mm_asymmetrical.plot(asym_mid_mean[:-1], color="purple")
-    mm_asymmetrical.fill_between(list(range(len(asym_mid_mean[:-1]))), asym_mid_mean[:-1] - asym_mid_std[:-1], asym_mid_mean[:-1] + asym_mid_std[:-1], alpha=0.3, color="purple")
-    mm_asymmetrical.set_xlabel("t")
-    mm_asymmetrical.set_ylabel("price")
-    mm_asymmetrical.set_ylabel("mid price")
-    mm_asymmetrical.get_yaxis().get_major_formatter().set_useOffset(False)

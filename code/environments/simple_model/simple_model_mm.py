@@ -51,6 +51,8 @@ class SimpleEnv(gym.Env):
         number of ticks away from mid price the market maker can quote
     use_all_times : bool
         boolean indicating whether to use all time steps or an indicator
+    analytical : bool
+        whether or not analytical depths should be used
     breaching_penalty : bool
         whether or not a breaching_penalty should be used
     breach_penalty : float
@@ -125,7 +127,8 @@ class SimpleEnv(gym.Env):
 
 
     def set_action_space(self):
-        """Sets the action space
+        """
+        Sets the action space
         
         Parameters
         ----------
@@ -144,7 +147,8 @@ class SimpleEnv(gym.Env):
 
 
     def set_observation_space(self):
-        """Sets the observation space
+        """
+        Sets the observation space
         
         Parameters
         ----------
@@ -161,11 +165,13 @@ class SimpleEnv(gym.Env):
         else:
             low = np.array([- self.Q, 0])
             high = np.array([self.Q, 1])
+
         self.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.int16)
 
 
     def state(self):
-        """Returns the observation space
+        """
+        Returns the observation space
 
         Parameters
         ----------
@@ -187,7 +193,8 @@ class SimpleEnv(gym.Env):
 
 
     def pre_run(self, n_steps=100):
-        """Updates the price n_steps times
+        """
+        Updates the price n_steps times
         
         Parameters
         ----------
@@ -204,7 +211,8 @@ class SimpleEnv(gym.Env):
 
 
     def update_price(self):
-        """Updates the mid price once and makes sure it's within bounds
+        """
+        Updates the mid price once and makes sure it's within bounds
         
         Parameters
         ----------
@@ -220,7 +228,8 @@ class SimpleEnv(gym.Env):
 
 
     def init_analytically_optimal(self):
-        """Calculates z and A which will be used for the optimal solution
+        """
+        Calculates z and A which will be used for the optimal solution
         
         Parameters
         ----------
@@ -244,7 +253,8 @@ class SimpleEnv(gym.Env):
 
 
     def calc_analytically_optimal(self):
-        """Calculates the analytically optimal bid/ask depth for the current time step
+        """
+        Calculates the analytically optimal bid/ask depth for the current time step
         
         Parameters
         ----------
@@ -280,7 +290,8 @@ class SimpleEnv(gym.Env):
 
 
     def discrete_analytically_optimal(self):
-        """Calculates the analytically optimal bid/ask depth for the current time step in #ticks
+        """
+        Calculates the analytically optimal bid/ask depth for the current time step in #ticks
         
         Parameters
         ----------
@@ -298,7 +309,8 @@ class SimpleEnv(gym.Env):
 
 
     def round_to_tick(self, p):
-        """Round a price to the closest tick
+        """
+        Round a price to the closest tick
         
         Parameters
         ----------
@@ -315,7 +327,8 @@ class SimpleEnv(gym.Env):
 
 
     def transform_action(self, action):
-        """Transforms an action in number of ticks to the actual difference in bid/ask from the mid price.  
+        """
+        Transforms an action in number of ticks to the actual difference in bid/ask from the mid price.  
         Also includes the minimum distance to the mid price and transforms ask to negative.
         
         Parameters
@@ -333,7 +346,8 @@ class SimpleEnv(gym.Env):
 
 
     def step(self, action):
-        """Takes a step in the environment based on the market maker taking an action
+        """
+        Takes a step in the environment based on the market maker taking an action
         
         Parameters
         ----------
@@ -465,7 +479,8 @@ class SimpleEnv(gym.Env):
 
 
     def _get_reward(self, V_t):
-        """Returns the reward for the current time step
+        """
+        Returns the reward for the current time step
         
         Parameters
         ----------
@@ -488,7 +503,8 @@ class SimpleEnv(gym.Env):
 
 
     def H_t(self):
-        """Returns the value of the currently held volume
+        """
+        Returns the value of the currently held volume
         
         Parameters
         ----------
@@ -504,7 +520,8 @@ class SimpleEnv(gym.Env):
 
 
     def inventory_penalty(self):
-        """Returns the penalty for the running inventory
+        """
+        Returns the penalty for the running inventory
         
         Parameters
         ----------
@@ -512,14 +529,16 @@ class SimpleEnv(gym.Env):
             
         Returns
         -------
-        G_t : float
+        g_t : float
             the running inventory penalty
         """
+
         return - self.phi * (self.Q_t ** 2)
 
 
     def final_liquidation(self):
-        """Returns the value of the held volume at time T
+        """
+        Returns the value of the held volume at time T
         
         Parameters
         ----------
@@ -530,11 +549,13 @@ class SimpleEnv(gym.Env):
         value : float
             the value of the held volume at time T
         """
+
         return self.Q_t * (self.mid - self.alpha * self.Q_t)
 
 
     def reset(self):
-        """Resets the environment
+        """
+        Resets the environment
         
         Parameters
         ----------
@@ -553,7 +574,8 @@ class SimpleEnv(gym.Env):
 
 
     def render(self, mode='human', close=False):
-        """Prints useful stats of the environment and the agent
+        """
+        Prints useful stats of the environment and the agent
         
         Parameters
         ----------

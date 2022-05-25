@@ -16,18 +16,13 @@ class MonteCarloEnvDeep(gym.Env, ABC):
     """
     Parameters
     ----------
-    include_spread_levels : bool
-        argument passed on to LOB class, whether to include the spread levels in the LOB arrays
-    ob_start : np.array
-        the starting order book data. includes ask, spread, and initial volumes
     num_levels : int
         number of price levels to consider in LOB. num_levels = number of price levels above best bid and best ask to
         include
+    include_spread_levels : bool
+        argument passed on to LOB class, whether to include the spread levels in the LOB arrays
     max_quote_depth : int
         number of ticks away from best bid and best ask the MM can place its orders
-    num_inv_buckets : int
-        number of buckets to use on each side of the zeroth inventory bucket. total number of buckets is
-        2*num_inv_buckets + 1
     T : int
         time horizon
     dt : float
@@ -35,25 +30,29 @@ class MonteCarloEnvDeep(gym.Env, ABC):
     mm_priority : bool
         whether MM's orders should have highest priority or not. note that False does not result in a time priority
         system, but instead the MM's orders have the last priority
-    num_time_buckets : int
-        nunmber of time variable state space bins
-    kappa : int
-        size of inventory buckets
     phi : float
         running inventory penalty parameter
+    reward_scale : float
+        a number with which all rewards are scaled
     pre_run_on_start : bool
         whether to perform a pre-run as an object is created / the environment is reset
     pre_run_iterations : int
         number of simulation events to include in the pre-run
-    MO_action : bool
-        whether or not the MM can put MOs
     debug : bool
         whether or not information for debugging should be printed during simulation
+    randomize_reset : bool
+        if the LOB should get a random state after every reset
+    default_order_size : int
+        the size of the orders the MM places
+
+    Returns
+    -------
+    None
     """
 
     def __init__(self, num_levels=10, include_spread_levels=True, max_quote_depth=5,
-                 T=5000, dt=1, mm_priority=True, phi=0, reward_scale =1, pre_run_on_start=False,
-                 pre_run_iterations=int(1e4), MO_action=False, debug=False, randomize_reset = True,
+                 T=5000, dt=1, mm_priority=True, phi=0, reward_scale=1, pre_run_on_start=False,
+                 pre_run_iterations=int(1e4), debug=False, randomize_reset = True,
                  default_order_size = 5):
 
         super(MonteCarloEnvDeep, self).__init__()
@@ -70,7 +69,6 @@ class MonteCarloEnvDeep(gym.Env, ABC):
             self.pre_run(self.pre_run_iterations)
 
         self.mm_priority = mm_priority
-        self.MO_action = MO_action
 
         self.buy_mo_sizes = list()
         self.tot_vol_sell = list()
@@ -109,6 +107,20 @@ class MonteCarloEnvDeep(gym.Env, ABC):
 
 
     def load_database(self, file_name = "environments/mc_model/starts_database/start_bank_n100000.pkl"):
+        """
+        loads a database with random LOB states
+
+        Parameters
+        ----------
+        file_name : str
+            where the database is stored
+
+        Returns
+        -------
+        lob_data_base : list
+            a list with random LOB states
+        """
+
         file = open(file_name, "rb")
 
         lob_data_base = pickle.load(file)
@@ -119,7 +131,18 @@ class MonteCarloEnvDeep(gym.Env, ABC):
     def set_action_space(self):
         """
         Sets the action space. The action space consists of the order depths and the action to place a market order.
+
+        The bid and ask depths are represented as a single integer.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
+
 
         self.action_space = gym.spaces.Discrete(self.max_quote_depth**2)
 
@@ -134,7 +157,16 @@ class MonteCarloEnvDeep(gym.Env, ABC):
     def set_observation_space(self):
         """
         Creates the observation space
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
         """
+
         obs_dim = 3 + 2 * self.num_levels
         low = -np.inf * np.ones(obs_dim)
         high = np.inf * np.ones(obs_dim)
@@ -142,7 +174,19 @@ class MonteCarloEnvDeep(gym.Env, ABC):
 
 
     def state(self):
-        # 40 is the largest volume ever observed on a single level
+        """
+        Returns the current observable state
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        obs : tuple
+            the observation space in terms of (time_varible, inventory_variable, spread, full LOB)
+        """
+
         lob = self.mc_model.ob.data[:, 1:].flatten() / 40
         inv = self.Q_t / 100
         t = self.t / self.T
@@ -153,7 +197,21 @@ class MonteCarloEnvDeep(gym.Env, ABC):
 
     def step(self, action: int):
         """
+        Receives an action (bid and ask depths) and takes a step in the environment accordingly
 
+        Parameters
+        ----------
+        action : int
+            the bid and ask depths represented as a single integer
+
+        Returns
+        -------
+        obs : tuple
+            the observation space in terms of (time_varible, inventory_variable)
+        reward : float
+            the reward received at time t+1
+        done : bool
+            whether or not the episode is finished
         """
 
         self.X_t_previous = self.X_t
@@ -208,7 +266,7 @@ class MonteCarloEnvDeep(gym.Env, ABC):
                 # walk the book in order to liquidate all of its holdings
                 if self.Q_t > 0:
                     volume_to_sell_current_trade = np.min([self.Q_t, self.mc_model.ob.bid_volume])
-                    if self.mc_model.ob.bid_volume == 0 and self.mc_model.ob.outside_volume != 0:  # self.Q_t != 0 and
+                    if self.mc_model.ob.bid_volume == 0 and self.mc_model.ob.outside_volume != 0:
                         volume_to_sell_current_trade = self.mc_model.ob.outside_volume
                     elif self.mc_model.ob.bid_volume == 0 and self.mc_model.ob.outside_volume == 0:
                         can_trade = False
@@ -225,9 +283,10 @@ class MonteCarloEnvDeep(gym.Env, ABC):
                         if self.debug:
                             print(f"Selling {volume_to_sell_current_trade} for {trade_turnover}, "
                                   f"remaining inventory {self.Q_t}")
+
                 elif self.Q_t < 0:
                     volume_to_buy_current_trade = np.min([-self.Q_t, self.mc_model.ob.ask_volume])
-                    if self.mc_model.ob.ask_volume == 0 and self.mc_model.ob.outside_volume != 0:  # and self.Q_t != 0
+                    if self.mc_model.ob.ask_volume == 0 and self.mc_model.ob.outside_volume != 0:
                         volume_to_buy_current_trade = self.mc_model.ob.outside_volume
                     elif self.mc_model.ob.ask_volume == 0 and self.mc_model.ob.outside_volume == 0:
                         can_trade = False
@@ -244,6 +303,7 @@ class MonteCarloEnvDeep(gym.Env, ABC):
                         if self.debug:
                             print(f"Buying {volume_to_buy_current_trade} for {trade_turnover}, "
                                   f"remaining inventory {self.Q_t}")
+
                 else:
                     can_trade = False
 
@@ -271,37 +331,27 @@ class MonteCarloEnvDeep(gym.Env, ABC):
             mm_bid_abs = self.quotes_absolute_level["bid"]
             mm_ask_abs = self.quotes_absolute_level["ask"]
 
-            # To manage cancellations - NOT NEEDED ANYMORE
-            has_bought = 0
-            has_sold = 0
-
             # Looping through all simulated results
             for n in range(simulation_results['num_events']):
                 event = simulation_results['event'][n]
                 absolute_level = simulation_results['abs_level'][n]
                 size = simulation_results['size'][n]
 
-                # print(self.order_volumes)
-
                 # Arriving LO buy or LO buy cancellation
                 if event in [0, 4] and absolute_level == mm_bid_abs:
                     if event == 0:  # LO buy
                         vol_on_mm_bid += size
-                        # self.order_volumes["bid"] = np.max([np.min([vol_on_mm_bid, 5 - has_bought]), 0])
+
                     else:  # LO buy cancellation
                         vol_on_mm_bid -= size
-                        """if vol_on_mm_bid < self.order_volumes["bid"]:
-                            self.order_volumes["bid"] = vol_on_mm_bid"""
 
                 # Arriving LO sell or LO sell cancellation
                 elif event in [1, 5] and absolute_level == mm_ask_abs:
                     if event == 1:  # LO sell
                         vol_on_mm_ask += size
-                        # self.order_volumes["ask"] = np.max([np.min([vol_on_mm_ask, 5 - has_sold]), 0])
+
                     else:  # LO sell cancellation
                         vol_on_mm_ask -= size
-                        """if vol_on_mm_ask < self.order_volumes["ask"]:
-                            self.order_volumes["ask"] = vol_on_mm_ask"""
 
                 # MM's orders only affected by MOs
                 elif event in [2, 3] and self.t != self.T:
@@ -314,14 +364,14 @@ class MonteCarloEnvDeep(gym.Env, ABC):
                                 self.order_volumes['bid'] -= mm_trade_volume  # decrease outstanding LO volume
                                 self.X_t -= mm_trade_volume * absolute_level  # deduct cash
                                 self.Q_t += mm_trade_volume  # adjust inventory
-                                # has_bought += mm_trade_volume
+
                         else:
                             # IMPLICIT ASSUMPTION THAT MARKET MAKER HAS FIRST ORDER PRIORITY
                             mm_trade_volume = np.min([size, self.order_volumes['bid']])
                             self.order_volumes['bid'] -= mm_trade_volume
                             self.X_t -= mm_trade_volume * absolute_level
                             self.Q_t += mm_trade_volume
-                            # has_bought += mm_trade_volume
+
                         vol_on_mm_bid -= size
 
                     # event type 3: 'mo ask', i.e., MO buy order arrives
@@ -333,24 +383,23 @@ class MonteCarloEnvDeep(gym.Env, ABC):
                                 self.order_volumes['ask'] -= mm_trade_volume  # decrease outstanding LO volume
                                 self.X_t += mm_trade_volume * absolute_level  # increase cash
                                 self.Q_t -= mm_trade_volume  # adjust inventory
-                                # has_sold += mm_trade_volume
+
                         else:
                             # IMPLICIT ASSUMPTION THAT MARKET MAKER HAS FIRST ORDER PRIORITY
                             mm_trade_volume = np.min([size, self.order_volumes['ask']])
                             self.order_volumes['ask'] -= mm_trade_volume
                             self.X_t += mm_trade_volume * absolute_level
                             self.Q_t -= mm_trade_volume
-                            # has_sold += mm_trade_volume
+
                         vol_on_mm_ask -= size
 
         if self.debug:
-            if not self.MO_action:
-                if self.X_t != self.print_MO_results(simulation_results, self.X_t_previous, printing=False) \
-                        and self.t < self.T:
-                    self.num_errors += 1
-                    self.print_MO_results(simulation_results, self.X_t_previous, printing=True)
-                    print("--> should have been", self.X_t, "at time", self.t)
-                    input("Next:")
+            if self.X_t != self.print_MO_results(simulation_results, self.X_t_previous, printing=False) \
+                    and self.t < self.T:
+                self.num_errors += 1
+                self.print_MO_results(simulation_results, self.X_t_previous, printing=True)
+                print("--> should have been", self.X_t, "at time", self.t)
+                input("Next:")
 
         # If the market maker has an outstanding buy order, cancel the entire volume
         if self.t != self.T:
@@ -380,7 +429,19 @@ class MonteCarloEnvDeep(gym.Env, ABC):
 
 
     def _get_reward(self):
-        # Added running inventory penalty
+        """
+        Returns the reward
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        reward : float
+            the reward
+        """
+
         return self.reward_scale * (self.X_t + self.H_t - (self.X_t_previous + self.H_t_previous) - self.phi * self.Q_t ** 2)
 
 
@@ -392,11 +453,29 @@ class MonteCarloEnvDeep(gym.Env, ABC):
         ----------
         n_steps : int
             the number of events that should be simulated in the LOB
+
+        Returns
+        -------
+        None
         """
+
         self.mc_model.simulate(int(n_steps))
 
 
     def reset(self, randomized = None):
+        """
+        Reset the environment. Chooses a random LOB state if prompted.
+
+        Parameters
+        ----------
+        randmoized : bool
+            if the LOB state should be randomized
+
+        Returns
+        -------
+        None
+        """
+
         self.X_t = 0
         self.t = 0
         self.Q_t = 0
@@ -418,6 +497,19 @@ class MonteCarloEnvDeep(gym.Env, ABC):
 
 
     def render(self, mode='human'):
+        """
+        Prints useful stats of the environment
+
+        Parameters
+        ----------
+        mode : str
+            ??
+
+        Returns
+        -------
+        None
+        """
+
         print('=' * 40)
         print(f'End of t = {self.t}')
         print(f'Current bid-ask = {self.mc_model.ob.bid}-{self.mc_model.ob.ask}')
@@ -430,6 +522,19 @@ class MonteCarloEnvDeep(gym.Env, ABC):
 
 
     def print_simulation_results(self, simulation_results):
+        """
+        Prints the events after a simulation
+
+        Parameters
+        ----------
+        simulation_results : dict
+            a dictionary with events
+
+        Returns
+        -------
+        None
+        """
+
         for key in simulation_results.keys():
             if key == "event":
                 print("\n event : ", end="")
@@ -440,6 +545,19 @@ class MonteCarloEnvDeep(gym.Env, ABC):
 
 
     def print_MO_results(self, simulation_results, cash, printing=True):
+        """
+        Prints the MOs after a simulation. Used for debugging.
+
+        Parameters
+        ----------
+        simulation_results : dict
+            a dictionary with events
+
+        Returns
+        -------
+        None
+        """
+
         if 2 in simulation_results["event"] or 3 in simulation_results["event"]:
             if printing:
                 print("=" * 40)

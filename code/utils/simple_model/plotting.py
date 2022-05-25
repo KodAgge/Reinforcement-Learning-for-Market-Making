@@ -106,7 +106,9 @@ def heatmap_Q(Q_tab, file_path = None):
     ----------
     Q_tab : dictionary
         a dictionary with values for all state-action pairs
-
+    file_path : str
+        where the files should be saved
+        
     Returns
     -------
     None
@@ -165,6 +167,8 @@ def heatmap_Q_std(Q_std, file_path = None):
     ----------
     Q_std : defaultdict
         a defaultdict with states as keys and standard deviations as values
+    file_path : str
+        where the files should be saved
 
     Returns
     -------
@@ -202,6 +206,8 @@ def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique = True, file_path = None):
     n_unique : bool
         whether or not number of unique actions should be used or not. If False,
         errors compared to mean optimal will be used
+    file_path : str
+        where the files should be saved
 
     Returns
     -------
@@ -261,6 +267,22 @@ def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique = True, file_path = None):
     
 
 def remove_last_t(Q_tab, T = 5):
+    """
+    Removes all values at time t = T in a defaultdict.
+
+    Parameters
+    ----------
+    Q_tab : defaultdict
+        a defaultdict with states as keys and q-values as values
+    T : int
+        the time for which values should be removed
+
+    Returns
+    -------
+    Q_tab : defaultdict
+        a defaultdict with states as keys and q-values as values
+    """
+
     for state in list(Q_tab.keys()):
         if state[1] == T:
             Q_tab.pop(state, None)
@@ -269,6 +291,25 @@ def remove_last_t(Q_tab, T = 5):
 
 
 def Q_table_to_array(Q_tab, env):
+    """
+    Finds the optimal depth for every state and puts it into two arrays,
+    one for bid and one for ask.
+
+    Parameters
+    ----------
+    Q_tab : defaultdict
+        a defaultdict with states as keys and q-values as values
+    env : object
+        the environment used to simulate the market
+
+    Returns
+    -------
+    array_bid : np.array
+        a numpy array with optimal bid depths
+    array_ask : np.array
+        a numpy array with optimal ask depths   
+    """
+
     optimal_bid = dict()
     optimal_ask = dict()
 
@@ -314,6 +355,8 @@ def show_Q(Q_tab, env, file_path = None):
         a dictionary with values for all state-action pairs
     env : class object
         the environment used to train Q
+    file_path : str
+        where the files should be saved
 
     Returns
     -------

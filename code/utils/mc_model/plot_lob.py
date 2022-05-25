@@ -17,7 +17,6 @@ def plot_LOB(lob_data, k=3):
     Returns
     -------
     None
-
     """
 
     # Adjusting k. k less than 0 does not work, and k greater than 5 makes the plot ugly

@@ -15,6 +15,10 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
     ----------
     Q_tab : dictionary
         a dictionary with values for all state-action pairs
+    file_path : str
+        where the files should be saved
+    skip_T : bool
+        whether or not the final time step should be included
 
     Returns
     -------
@@ -84,6 +88,21 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
 
 
 def heatmap_Q_std(Q_std, file_path = None):
+    """
+    Plots a heatmap of the standard deviation of the q-value of the optimal actions
+
+    Parameters
+    ----------
+    Q_std : defaultdict
+        a defaultdict with states as keys and standard deviations as values
+    file_path : str
+        where the files should be saved
+
+    Returns
+    -------
+    None
+    """
+
     plt.figure()
 
     ser = pd.Series(list(Q_std.values()),
@@ -115,6 +134,8 @@ def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique=True, file_path = None):
     n_unique : bool
         whether or not number of unique actions should be used or not. If False,
         errors compared to mean optimal will be used
+    file_path : str
+        where the files should be saved
 
     Returns
     -------
@@ -181,8 +202,8 @@ def show_Q(Q_tab, file_path = None):
     ----------
     Q_tab : dictionary
         a dictionary with values for all state-action pairs
-    env : class object
-        the environment used to train Q
+    file_path : str
+        where the files should be saved
 
     Returns
     -------
@@ -246,6 +267,12 @@ def load_Q(filename, default=True):
     -------
     Q : dict
         a defaultdictionary/dictionary will all Q tables. the keys are actions and the values are the actual Q tables
+    args : dict
+        the model parameters
+    n : int
+        the number of episodes the Q-learning was run for
+    rewards : list
+        the saved rewards during training
     """
 
     # Load the file

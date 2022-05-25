@@ -20,6 +20,12 @@ class MarkovChainLobModel:
             rates for different events
         ob_start : numpy array
             starting lob
+        include_spread_levels : bool
+            whether to include the spread levels in the LOB arrays
+
+        Returns
+        -------
+        None
         """
 
         self.num_levels = num_levels
@@ -136,7 +142,11 @@ class MarkovChainLobModel:
 
     def update_current_rates_new(self):
         """
+        Updates the current rate
 
+        Returns
+        -------
+        the updated rates
         """
 
         self.current_rates = {}
