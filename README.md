@@ -2,13 +2,17 @@
 
 This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken and can be found [here](https://www.google.com). FIX LINK
 
-## Thesis
-Our thesis uses reinforcement learning to find optimal market making strategies in a limit order book. Before going a bit deeper into what this means, here's the abstract.
+-----
 
-### Abstract
-> Market making - the process of simultaneously and continuously providing buy and sell prices in a financial asset - is rather complicated to optimize. Applying reinforcement learning (RL) to infer optimal market making strategies is a relatively uncharted and novel research area. Most published articles in the field are notably opaque concerning most aspects, including precise methods, parameters, and results. This thesis attempts to explore and shed some light on the techniques, problem formulations, algorithms, and hyperparameters used to construct RL-derived strategies for market making. First, a simple probabilistic model of a limit order book is used to compare analytical and RL-derived strategies. Second, a market making agent is trained on a more complex Markov chain model of a limit order book using tabular Q-learning and deep reinforcement learning with double deep Q-learning. Results and strategies are analyzed, compared, and discussed. Finally, we propose some exciting extensions and directions for future work in this research field.
+## Executive summary (rename?)
+Superkort vad vi har gjort
 
-### Reinforcement learning
+### What is Reinforcement Learning?
+* Intuitive explanation
+* An example
+* MDP bilden, förklara state och action
+* Det finns olika sätta att göra det på!
+
 For anyone not familiar with reinforcement learning (RL), it's a concept that stems from the idea of how humans and animals learn: by interacting in our environment and learning from experience. 
 
 #### Examples
@@ -19,22 +23,47 @@ vill vi skriva något om det?
 
 
 In this thesis, we use two different RL methods to find optimal market making strategies: Q-learning and DDQN. 
-#### Q-learning
 
+#### Q-learning
+* Tabulär metod
+* Lär sig värde för alla states och actions
+* Långsamt!
 
 #### DDQN
+* Approximativ metod
+* Träning av NN
+* Klarar stora states!
+
+Men vi har fortfarande inte diskuterat market making?
+
+### What is Market Making?
+* Vår enmeningsförklaring
+
+Säger inte så mycket så vi går igenom:
+* Types of orders
+* LOB
+* Market making
 
 
-
-### Limit order book
+#### Limit order book
 A limit order book is just a collection of outstanding orders on an exchange... 
 
 
-### Market making
+#### Market making
+
+#### Our environments
+SPM och MC
 
 
-### Our results
+### Results!
 
+#### Analytical vs RL
+länka notebooks
+
+#### Tabular vs DRL
+länka notebooks
+
+#### Summary
 
 ## to do
 
@@ -42,6 +71,12 @@ A limit order book is just a collection of outstanding orders on an exchange...
 - [ ] Credit Hanna & Hult
 - [ ] Add short description of files
 - [ ] Add jupyter notebook with examples
+
+## Thesis
+Our thesis uses reinforcement learning to find optimal market making strategies in a limit order book. Before going a bit deeper into what this means, here's the abstract.
+
+### Abstract
+> Market making - the process of simultaneously and continuously providing buy and sell prices in a financial asset - is rather complicated to optimize. Applying reinforcement learning (RL) to infer optimal market making strategies is a relatively uncharted and novel research area. Most published articles in the field are notably opaque concerning most aspects, including precise methods, parameters, and results. This thesis attempts to explore and shed some light on the techniques, problem formulations, algorithms, and hyperparameters used to construct RL-derived strategies for market making. First, a simple probabilistic model of a limit order book is used to compare analytical and RL-derived strategies. Second, a market making agent is trained on a more complex Markov chain model of a limit order book using tabular Q-learning and deep reinforcement learning with double deep Q-learning. Results and strategies are analyzed, compared, and discussed. Finally, we propose some exciting extensions and directions for future work in this research field.
 
 ## This repository
 The code is split into three main categories: 
