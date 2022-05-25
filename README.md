@@ -1,5 +1,3 @@
-# TEXT NOT DONE
-
 # Reinforcement Learning for Market Making
 
 This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken and can be found [here](https://www.google.com). FIX LINK
@@ -67,12 +65,16 @@ länka notebooks
 
 #### Summary
 
+-----
+
 ## to do
 
 - [ ] Finish readme
 - [ ] Credit Hanna & Hult
 - [ ] Add short description of files
 - [ ] Add jupyter notebook with examples
+
+-----
 
 ## Thesis
 Our thesis uses reinforcement learning to find optimal market making strategies in a limit order book. Before going a bit deeper into what this means, here's the abstract.
