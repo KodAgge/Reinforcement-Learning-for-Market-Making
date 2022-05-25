@@ -9,7 +9,7 @@ For anyone not familiar with reinforcement learning (RL), it's a concept that st
 
 > AlphaGo was the first computer program to beat a world champion in the board game of Go. If you haven't seen the documentary about AlphaGo, you should totally check it out. It's available on Youtube **[here](https://www.youtube.com/watch?v=WXuK6gekU1Y)**. Other cool stuff that has been done is teaching a computer program to play Atari arcade games on a superhuman level (the first example of something called _deep Q-networks_) and DeepMind's AlphaFold. AlphaFold is the world's greatest computer program for protein structure prediction. 
 
-But for what can reinforcement learning be used? It is built upon the assumption that there is an environment an agent can interact with - namely a Markov decision process (MDP). 
+But for what can reinforcement learning be used? It is built upon the assumption that there is an environment an agent can interact with - most commonly a Markov decision process (MDP). In a decision process, the interaction is as follows:
 
 > At each step *t* the agent (decision maker):
 > * Receives observation of the current state _S<sub>t</sub>_
