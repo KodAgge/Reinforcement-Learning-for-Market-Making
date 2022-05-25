@@ -76,7 +76,7 @@ The code is split into three main categories:
 ```
 
 ### Credits
-The code in `code/environments/mc_model/lob_utils/` as well as `code/environments/mc_model/mc_lob_simulation_class.py` was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can read her licentiate thesis [here]([https://www.google.com](https://www.diva-portal.org/smash/record.jsf?dswid=4507&pid=diva2%3A1556150&c=2&searchType=SIMPLE&language=sv&query=hanna+hultin+kth&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&sortOrder2=title_sort_asc&onlyFullText=false&sf=all)). LÄNK! Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). Algorithmic trading with Markov chains.). 
+The code in `code/environments/mc_model/lob_utils/` as well as `code/environments/mc_model/mc_lob_simulation_class.py` was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can read her licentiate thesis [here](https://www.diva-portal.org/smash/record.jsf?dswid=4507&pid=diva2%3A1556150&c=2&searchType=SIMPLE&language=sv&query=hanna+hultin+kth&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&sortOrder2=title_sort_asc&onlyFullText=false&sf=all). LÄNK! Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). Algorithmic trading with Markov chains.). 
 
 --------
 
