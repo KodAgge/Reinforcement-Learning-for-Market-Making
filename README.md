@@ -138,9 +138,9 @@ For more on how this was done, visit the notebook called **[Q-learning in the si
 ### Tabular vs Deep Reinforcement Learning methods
 As stated before, the Markov chain model allows for a more sophisticated simulation of the market in comparison to the simple probabilistic model. We now set up a larger market making problem (the trading interval is much longer) which makes it possible to compare tabular and deep reinforcement learning methods. Since there is no analytically optimal strategy in this model, we once again included some benchmarking strategies in order to better grasp the results.
 
-> *best single run* - The Q-learning/DDQN was run 10 seperate times, this was the best of those 10 Q-learning/DDQN strategies
+> *best single run* - The Q-learning/DDQN was run 8 seperate times, this was the best of those 8 Q-learning/DDQN strategies
 >
-> *mean strategy* - This is the strategy obtained when all 10 Q-learning/DDQN strategies votes on the best action for every state
+> *mean strategy* - This is the strategy obtained when all 8 Q-learning/DDQN strategies votes on the best action for every state
 >
 > *constant* - This is the benchmark strategy where the market maker always quotes the same constant depths
 >
