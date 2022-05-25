@@ -1,5 +1,11 @@
 import numpy as np
 
+"""
+================== CREDITS =======================
+The code in this file was written by Hanna Hultin.
+
+"""
+
 
 class LOB:
     def __init__(self, data, outside_volume=1, include_spread_levels=True):

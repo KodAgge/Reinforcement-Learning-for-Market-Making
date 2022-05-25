@@ -1,6 +1,11 @@
 import numpy as np
-
 from environments.mc_model.lob_utils.lob_functions import *
+
+"""
+================== CREDITS =======================
+The code in this file was written by Hanna Hultin.
+
+"""
 
 
 class MarkovChainLobModel:

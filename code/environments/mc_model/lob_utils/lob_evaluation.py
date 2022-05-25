@@ -4,8 +4,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from scipy.optimize import minimize_scalar
-
 from lob_utils.lob_functions import *
+
+"""
+================== CREDITS =======================
+The code in this file was written by Hanna Hultin.
+
+"""
 
 
 def estimate_rates_lists(data_dict, event_types):
