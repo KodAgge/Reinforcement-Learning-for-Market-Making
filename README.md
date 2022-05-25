@@ -9,7 +9,7 @@ For anyone not familiar with reinforcement learning (RL), it's a concept that st
 
 > AlphaGo was the first computer program to beat a world champion in the board game of Go. If you haven't seen the documentary about AlphaGo, you should totally check it out. It's available on Youtube **[here](https://www.youtube.com/watch?v=WXuK6gekU1Y)**. Other cool stuff that has been done is teaching a computer program to play Atari arcade games on a superhuman level (the first example of something called _deep Q-networks_) and DeepMind's AlphaFold. AlphaFold is the world's greatest computer program for protein structure prediction. 
 
-But for what can reinforcement learning be used? It is built upon the assumption that there is an environment an agent can interact with - namely a Markov decision process (MDP). 
+But for what can reinforcement learning be used? It is built upon the assumption that there is an environment an agent can interact with - most commonly a Markov decision process (MDP). In a decision process, the interaction is as follows:
 
 > At each step *t* the agent (decision maker):
 > * Receives observation of the current state _S<sub>t</sub>_
@@ -27,7 +27,7 @@ This interaction is explained by the following image.
 
 Let's have a look at an example so we better can grasp the concepts.
 
-> We just started playing a game of chess, none of the players have made a move. Then the state, _S<sub>t</sub>_, is the current board configuration. The agent may then choose to move its leftmost pawn one step forward, which would be its action _A<sub>t</sub>_. After the agent has made its move, the opponent would make its move. Following this, the agent would have a look at the new board state, _S<sub>t+1</sub>_, and receive a reward _R<sub>t+1</sub>_. This reward could be defined in many different ways, for instance the value of the opponent's lost pieces minus the value of the agent's lost pieces.
+> We just started playing a game of chess, none of the players have made a move. Then the state, _S<sub>t</sub>_, is the current board configuration. The agent may then choose to move its leftmost pawn one step forward, which would be its action _A<sub>t</sub>_. After the agent has made its move, the opponent would make its move. Following this, the agent would have a look at the new board state, _S<sub>t+1</sub>_, and receive a reward _R<sub>t+1</sub>_. This reward could be defined in many different ways, for instance the value of the opponent's lost pieces minus the value of the agent's lost pieces or the increase in the probability of winning the game.
 
 There are many ways to perform reinforcement learning, but what they have in common is that they at every state want to find the action that maximizes the expected cumulative reward. We have chosen to focus on two different RL methods to find optimal market making strategies: Q-learning and DDQN.
 
@@ -46,9 +46,9 @@ With this short introduction to reinforcement learning done, we now want to appl
 ## What is Market Making?
 *Market making* is the process of simultaneously and continuously providing buy and sell prices in a financial asset, which provides liquidity to the market and generates a profit off the spread.
 
-This explanation may not be very helpful for everyone. We'll try to provide a better one.
+This explanation may not be very helpful for everyone. So we'll try to provide a better one.
 
-Market making essentially boils down to providing options for others to trade. A market maker puts up prices it wants to buy at (bid prices) and prices it wants to sell at (ask prices). These prices will not be the same since market makers want to make a profit and there are risks involved with market making (e.g. inventory risk). So for instance if you would like to trade Euro with the market maker with the quoted prices in the image below, the market maker would earn a spread of *10.5673 - 10.4523 = 0.1150* if you would buy one Euro and then instantly sell it back.
+Market making essentially boils down to providing options for others to trade. A market maker puts up prices it wants to buy at (bid prices) and prices it wants to sell at (ask prices). These prices will not be the same since market makers want to make a profit, and there are risks involved with market making (e.g. inventory risk). So, for instance, if you would like to trade Euro with the market maker with the quoted prices in the image below, the market maker would earn a spread of *10.5673 - 10.4523 = 0.1150* if you would buy one Euro and then instantly sell it back.
 
 <div>
     <img src="code/images/Valutakurser.png"/>
@@ -60,7 +60,7 @@ But before we apply reinforcement learning to this, let's formalize it a bit.
 
 ### Formalization of the market
 
-In our modern markets today there are an endless number of order types, from basic to very exotic order types. We will however focus on the three basic order types, *limit orders*, *market orders*, and *cancel orders*. Note that these all come in their respective *buy* annd *sell* variant.
+In today's modern markets there are an endless number of order types, from basic to very exotic order types. We will however focus on the three basic order types, *limit orders*, *market orders*, and *cancel orders*. Note that these all come in their respective *buy* annd *sell* variant.
 
 > * A *limit order* is an offer to buy/sell a specified quantity at a maximum/minimum
 price.
