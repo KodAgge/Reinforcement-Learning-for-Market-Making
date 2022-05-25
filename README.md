@@ -27,7 +27,7 @@ This interaction is explained by the following image.
 
 Let's have a look at an example so we better can grasp the concepts.
 
-> We just started playing a game of chess, none of the players have made a move. Then the state, _S<sub>t</sub>_, is the current board configuration. The agent may then choose to move its leftmost pawn one step forward, which would be its action _A<sub>t</sub>_. After the agent has made its move, the opponent would make its move. Following this, the agent would have a look at the new board state, _S<sub>t+1</sub>_, and receive a reward _R<sub>t+1</sub>_. This reward could be defined in many different ways, for instance the value of the opponent's lost pieces minus the value of the agent's lost pieces.
+> We just started playing a game of chess, none of the players have made a move. Then the state, _S<sub>t</sub>_, is the current board configuration. The agent may then choose to move its leftmost pawn one step forward, which would be its action _A<sub>t</sub>_. After the agent has made its move, the opponent would make its move. Following this, the agent would have a look at the new board state, _S<sub>t+1</sub>_, and receive a reward _R<sub>t+1</sub>_. This reward could be defined in many different ways, for instance the value of the opponent's lost pieces minus the value of the agent's lost pieces or the increase in the probability of winning the game.
 
 There are many ways to perform reinforcement learning, but what they have in common is that they at every state want to find the action that maximizes the expected cumulative reward. We have chosen to focus on two different RL methods to find optimal market making strategies: Q-learning and DDQN.
 
