@@ -43,7 +43,7 @@ def plot_optimal_depth(D, bid=True, discrete=True):
     plt.yticks(np.arange(3) * 0.010)
     if discrete and D.shape[1] < 10:
         plt.xticks(np.arange(0, D.shape[1]))
-    # plt.yticks(np.arange(0, 0.025, 0.005))
+
     plt.legend()
     plt.show()
 
@@ -120,8 +120,6 @@ def heatmap_Q(Q_tab, file_path = None):
         optimal_action = np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape)
         optimal_bid[state] = optimal_action[0]
         optimal_ask[state] = optimal_action[1]
-        # optimal_bid[state] = optimal_action[0] + 1
-        # optimal_ask[state] = optimal_action[1] + 1
 
     for state in list(Q_tab.keys()):
         if state[0] == 3:
@@ -305,6 +303,7 @@ def Q_table_to_array(Q_tab, env):
 
     return array_bid, array_ask
 
+
 def show_Q(Q_tab, env, file_path = None):
     """
     plotting the optimal depths from Q_tab
@@ -369,81 +368,3 @@ def show_Q(Q_tab, env, file_path = None):
     else:
         plt.savefig(file_path + "opt_ask_strategy")
         plt.close()
-
-
-if __name__ == "__main__":
-    if False:
-        args = {"d": 3, "T": 30, "dp": 0.01, "min_dp": 0, "alpha": 1e-4, "phi": 1e-5, "use_all_times": True}
-
-        env = SimpleEnv(**args, printing=False, debug=False)
-
-        # Q_tab = load_Q("Q_d3_T30_dp0.01_min_dp0_alpha0.0001_phi1e-05_use_all_timesTrue_n100000")[0]
-        # print(Q_tab)
-        # heatmap_Q(Q_tab)
-        # show_Q(Q_tab, env)
-
-        # ----- PLOTTING THE OPTIMAL DEPTHS -----
-        if True:
-            bid = True
-            phi = 1e-5
-
-            T = 30
-
-            data_discrete = generate_optimal_depth(T=T, bid=bid, phi=phi, discrete=True)
-            data_continuous = generate_optimal_depth(T=T, bid=bid, phi=phi, discrete=False)
-
-            plot_optimal_depth(data_discrete, bid=bid, discrete=True)
-            plot_optimal_depth(data_continuous, bid=bid, discrete=False)
-
-    # ----- PLOTTING THE FILL RATE AND INVENTORY DRIFT -----
-    if True:
-        t = 15
-        T = 20
-        Q = 10
-        lambd = 1
-        kappa = 100
-        phis = [2e-3, 1e-3, 5e-4]
-
-        fills_ask = []
-        fills_bid = []
-
-        colors = ["C0", "C1", "C2"]
-
-        qs = np.arange(start=-Q, stop=Q + 1)
-
-        plt.figure()
-        for i, phi in enumerate(phis):
-            depths_bid = generate_optimal_depth(bid=True, T=T, Q=Q, phi=phi, discrete=False)[:, t]
-            fill_rate_bid = lambd * np.exp(- kappa * depths_bid)
-            plt.plot(qs, fill_rate_bid, '+', markersize=10, label="Buy - $\phi$ = " + str(phi), color=colors[i])
-            fills_bid.append(fill_rate_bid)
-
-        for i, phi in enumerate(phis):
-            depths_ask = generate_optimal_depth(bid=False, T=T, Q=Q, phi=phi, discrete=False)[:, t]
-            fill_rate_ask = lambd * np.exp(- kappa * depths_ask)
-            plt.plot(qs, fill_rate_ask, 'o', label="Sell - $\phi$ = " + str(phi), color=colors[i])
-            fills_ask.append(fill_rate_ask)
-
-        plt.ylim([-1, 26])
-        plt.xticks(np.arange(-10, 11, 5))
-        plt.yticks(np.arange(0, 26, 5))
-        plt.title("Fill rates as a function of q")
-        plt.ylabel("Fill rate")
-        plt.xlabel("Inventory (q)")
-        plt.legend()
-        plt.show()
-
-        plt.figure()
-        drift = np.array(fills_bid) - np.array(fills_ask)
-
-        for phi in range(drift.shape[0]):
-            plt.plot(qs, drift[phi, :], 'o', label="$\phi$ = " + str(phis[phi]), color=colors[phi])
-
-        plt.ylim([-31, 31])
-        plt.xticks(np.arange(-10, 11, 5))
-        plt.yticks(np.arange(-30, 31, 10))
-        plt.title("Inventory drift as a function of q")
-        plt.ylabel("Inventory drift")
-        plt.xlabel("Inventory (q)")
-        plt.legend()
-        plt.show()

@@ -3,6 +3,10 @@ from simple_model_mm_q_learning import linear_decreasing, exponential_decreasing
 import matplotlib.pyplot as plt
 import numpy as np
 
+"""
+Plots the hyperparameter schemes for Q-learning
+"""
+
 epsilon_start = 1
 epsilon_end = 0.05
 epsilon_cutoff = 0.5

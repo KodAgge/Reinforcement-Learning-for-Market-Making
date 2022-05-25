@@ -5,10 +5,6 @@ import numpy as np
 from scipy.linalg import expm  # O(n^3)
 
 
-# TODO: Check that the strategies work as intended
-# TODO: Fix reward
-
-
 class SimpleEnv(gym.Env):
     """
     SimpleEnv is an object that is able to simulate the simple probabilistic environment.
@@ -72,24 +68,23 @@ class SimpleEnv(gym.Env):
                  reward_scale=1, breach_penalty_function=np.square):
         super(SimpleEnv, self).__init__()
 
-        self.T = T  # maximal time
-        self.dt = dt  # time increments
+        self.T = T              # maximal time
+        self.dt = dt            # time increments
 
-        self.Q = Q  # maximal volume
-        self.dq = dq  # volume increments the agent can work with
-        self.Q_0 = Q_0  # the starting volume
+        self.Q = Q              # maximal volume
+        self.dq = dq            # volume increments the agent can work with
+        self.Q_0 = Q_0          # the starting volume
 
-        self.dp = dp  # tick size
-        self.min_dp = min_dp  # the minimum number of ticks from the mid price the market maker has to put their
-        # ask/bid price
-        self.d = d  # Number of ticks away the market maker is allowed to quote
+        self.dp = dp            # tick size
+        self.min_dp = min_dp    # the minimum number of ticks from the mid price the market maker has to put their ask/bid price
+        self.d = d              # Number of ticks away the market maker is allowed to quote
 
-        self.mu = mu  # average price of the stock
-        self.std = std  # standard deviation the price movement
+        self.mu = mu            # average price of the stock
+        self.std = std          # standard deviation the price movement
 
-        self.U = utility_fnc  # utility function to evaluate reward
-        self.alpha = alpha  # penalty for holding volume
-        self.phi = phi  # the running inventory penalty parameter
+        self.U = utility_fnc    # utility function to evaluate reward
+        self.alpha = alpha      # penalty for holding volume
+        self.phi = phi          # the running inventory penalty parameter
 
         self.use_all_times = use_all_times
 
@@ -128,6 +123,7 @@ class SimpleEnv(gym.Env):
         # Remembering the start price for the reward
         self.start_mid = self.mid
 
+
     def set_action_space(self):
         """Sets the action space
         
@@ -140,13 +136,12 @@ class SimpleEnv(gym.Env):
         None
         """
 
-        # low = np.array([- self.P / self.dp, self.min_dp])
-        # high = np.array([- self.min_dp, self.P / self.dp])
         low = np.array([0, 0])
         high = np.array([self.d - 1, self.d - 1])  # d-1 due to actions defined on [0, d-1]^2, where action [i,j]
         # corresponds to quoting i+1 and j+1 ticks away as bid and ask prices
 
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.int16)
+
 
     def set_observation_space(self):
         """Sets the observation space
@@ -167,6 +162,7 @@ class SimpleEnv(gym.Env):
             low = np.array([- self.Q, 0])
             high = np.array([self.Q, 1])
         self.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.int16)
+
 
     def state(self):
         """Returns the observation space
@@ -189,6 +185,7 @@ class SimpleEnv(gym.Env):
         else:
             return self.Q_t, int(self.t / self.T >= 0.9)
 
+
     def pre_run(self, n_steps=100):
         """Updates the price n_steps times
         
@@ -202,8 +199,9 @@ class SimpleEnv(gym.Env):
         None
         """
 
-        for n in range(n_steps):
+        for _ in range(n_steps):
             self.update_price()
+
 
     def update_price(self):
         """Updates the mid price once and makes sure it's within bounds
@@ -219,6 +217,7 @@ class SimpleEnv(gym.Env):
 
         # The change rounded to the closest tick size
         self.mid += self.round_to_tick(np.random.normal(0, self.std))
+
 
     def init_analytically_optimal(self):
         """Calculates z and A which will be used for the optimal solution
@@ -242,6 +241,7 @@ class SimpleEnv(gym.Env):
                     self.A[i + self.Q, q + self.Q] = self.lambda_pos * np.exp(-1)
                 elif i == q + 1:
                     self.A[i + self.Q, q + self.Q] = self.lambda_neg * np.exp(-1)
+
 
     def calc_analytically_optimal(self):
         """Calculates the analytically optimal bid/ask depth for the current time step
@@ -278,6 +278,7 @@ class SimpleEnv(gym.Env):
 
         return action
 
+
     def discrete_analytically_optimal(self):
         """Calculates the analytically optimal bid/ask depth for the current time step in #ticks
         
@@ -295,6 +296,7 @@ class SimpleEnv(gym.Env):
 
         return action
 
+
     def round_to_tick(self, p):
         """Round a price to the closest tick
         
@@ -310,6 +312,7 @@ class SimpleEnv(gym.Env):
         """
 
         return np.round(p / self.dp, decimals=0) * self.dp
+
 
     def transform_action(self, action):
         """Transforms an action in number of ticks to the actual difference in bid/ask from the mid price.  
@@ -327,6 +330,7 @@ class SimpleEnv(gym.Env):
         """
 
         return (action + self.min_dp) * np.array([-1, 1]) * self.dp
+
 
     def step(self, action):
         """Takes a step in the environment based on the market maker taking an action
@@ -348,8 +352,6 @@ class SimpleEnv(gym.Env):
 
         # ----- UPDATING THE PRICE -----
         self.update_price()
-
-        # Update MM depth
 
         # Update bid and ask to the given number of ticks away from the mid price
         if self.analytical:
@@ -382,66 +384,38 @@ class SimpleEnv(gym.Env):
             n_exec_MO_buy = np.random.binomial(n_MO_buy, p_MO_buy)
             n_exec_MO_sell = np.random.binomial(n_MO_sell, p_MO_sell)
 
-            """
-            N.B. I have written it below as 'if True is False' instead of 'if False' because with 'if False' I get 
-            annoying warnings from Pycharm that the code is unreachable :)
-            //Simon
-            """
+            # Step 1: add cash from the arriving buy and sell MOs that perfectly cancel each other
+            if n_exec_MO_buy * n_exec_MO_sell > 0:
+                self.X_t += (self.mm_ask - self.mm_bid) * np.min([n_exec_MO_buy, n_exec_MO_sell])
 
-            if True:  # Simons kod
-                # Step 1: add cash from the arriving buy and sell MOs that perfectly cancel each other
-                if n_exec_MO_buy * n_exec_MO_sell > 0:
-                    self.X_t += (self.mm_ask - self.mm_bid) * np.min([n_exec_MO_buy, n_exec_MO_sell])
+            # Note to self: there shouldn't be any issues with infinite bids and asks since the probability of a
+            # filled LO at +/- inf is zero
 
-                # Note to self: there shouldn't be any issues with infinite bids and asks since the probability of a
-                # filled LO at +/- inf is zero
+            # Step 2: compute the net balance from time step t for the market maker, and make adjustments
+            # Net balance for the market maker is the difference in arriving MO sell and arriving MO buy orders
+            n_MO_net = n_exec_MO_sell - n_exec_MO_buy
 
-                # Step 2: compute the net balance from time step t for the market maker, and make adjustments
-                # Net balance for the market maker is the difference in arriving MO sell and arriving MO buy orders
-                n_MO_net = n_exec_MO_sell - n_exec_MO_buy
+            if n_MO_net != 0:  # Saving computational power, if net above is zero, skip below
+                # Determine if net balance would result in a limit breach, and if so, adjust accordingly to keep
+                # within limits
+                if n_MO_net + self.Q_t > self.Q:  # long inventory limit breach
+                    self.breach = self.breach_penalty_function(n_MO_net + self.Q_t - self.Q)
+                    n_MO_net = self.Q - self.Q_t  # the maximum allowed net increase is given by Q - Q_t
+                    n_exec_MO_sell -= (n_MO_net + self.Q_t - self.Q)
+                elif n_MO_net + self.Q_t < - self.Q:  # short inventory limit breach
+                    self.breach = self.breach_penalty_function(-self.Q - (n_MO_net + self.Q_t))
+                    n_MO_net = - self.Q - self.Q_t  # the maximum allowed net decrease is given by -Q + Q_t
+                    n_exec_MO_buy -= (- self.Q - (n_MO_net + self.Q_t))
+                else:
+                    self.breach = False
 
-                if n_MO_net != 0:  # Saving computational power, if net above is zero, skip below
-                    # Determine if net balance would result in a limit breach, and if so, adjust accordingly to keep
-                    # within limits
-                    if n_MO_net + self.Q_t > self.Q:  # long inventory limit breach
-                        self.breach = self.breach_penalty_function(n_MO_net + self.Q_t - self.Q)
-                        n_MO_net = self.Q - self.Q_t  # the maximum allowed net increase is given by Q - Q_t
-                        n_exec_MO_sell -= (n_MO_net + self.Q_t - self.Q)
-                    elif n_MO_net + self.Q_t < - self.Q:  # short inventory limit breach
-                        self.breach = self.breach_penalty_function(-self.Q - (n_MO_net + self.Q_t))
-                        n_MO_net = - self.Q - self.Q_t  # the maximum allowed net decrease is given by -Q + Q_t
-                        n_exec_MO_buy -= (- self.Q - (n_MO_net + self.Q_t))
-                    else:
-                        self.breach = False
+                # Step 3: add cash from net trading
+                if n_MO_net > 0:
+                    self.X_t -= self.mm_bid * n_MO_net
+                elif n_MO_net < 0:
+                    self.X_t -= self.mm_ask * n_MO_net
 
-                    # Step 3: add cash from net trading
-                    if n_MO_net > 0:
-                        self.X_t -= self.mm_bid * n_MO_net
-                    elif n_MO_net < 0:
-                        self.X_t -= self.mm_ask * n_MO_net
-
-                    self.Q_t += n_MO_net
-
-            if False:  # Augusts kod
-                # The actual (net) number executed
-                n_MO_net = n_exec_MO_sell - n_exec_MO_buy
-
-                # Adjust such that the number of orders doesnt exceed the max/min
-                if self.Q_t + n_MO_net < -self.Q:
-                    n_exec_MO_buy -= - self.Q_t - n_MO_net - self.Q
-
-                elif self.Q_t + n_MO_net > self.Q:
-                    n_exec_MO_sell -= self.Q_t + n_MO_net - self.Q
-
-                # Update the cash and inventory process
-                # isfinite - to make sure X_t doesnt become nan when the bid/ask is infinite
-                if np.isfinite(self.mm_ask):
-                    self.X_t += self.mm_ask * n_exec_MO_buy
-
-                if np.isfinite(self.mm_bid):
-                    self.X_t -= self.mm_bid * n_exec_MO_sell
-
-                self.Q_t += n_exec_MO_sell - n_exec_MO_buy
+                self.Q_t += n_MO_net
 
             if self.debug:
                 print("Arrvials:")
@@ -489,6 +463,7 @@ class SimpleEnv(gym.Env):
 
         return self.state(), reward
 
+
     def _get_reward(self, V_t):
         """Returns the reward for the current time step
         
@@ -511,6 +486,7 @@ class SimpleEnv(gym.Env):
         else:
             return self.reward_scale * (V_t - self.V_t) + self.inventory_penalty()
 
+
     def H_t(self):
         """Returns the value of the currently held volume
         
@@ -524,9 +500,8 @@ class SimpleEnv(gym.Env):
             the value of the currently held volume
         """
 
-        # return self.Q_t * self.liquidation_price(self.Q_t)
+        return self.Q_t * self.mid
 
-        return self.Q_t * self.mid  # (self.mm_bid if self.Q_t < 0 else self.mm_ask)
 
     def inventory_penalty(self):
         """Returns the penalty for the running inventory
@@ -542,6 +517,7 @@ class SimpleEnv(gym.Env):
         """
         return - self.phi * (self.Q_t ** 2)
 
+
     def final_liquidation(self):
         """Returns the value of the held volume at time T
         
@@ -556,34 +532,6 @@ class SimpleEnv(gym.Env):
         """
         return self.Q_t * (self.mid - self.alpha * self.Q_t)
 
-    def liquidation_price(self, Q):
-        """Returns the average liquidation price of a volume Q
-        
-        Parameters
-        ----------
-        Q : integer
-            a volume
-            
-        Returns
-        -------
-        p_t : float
-            the average price for liquidating the volume Q
-        """
-
-        # We assume that every additional volume over |Q|=1 is bought at one additional tick away
-        # DISCRETE
-        # penalty = - np.sign(Q) * (np.abs(Q) - 1) / 2
-
-        # CONTINUOUS
-        penalty = - self.alpha * Q
-
-        # # Start from the bid/ask and add penalty
-        # p_t = (self.mm_bid if self.Q_t < 0 else self.mm_ask) + penalty
-
-        # Start from the mid and add penalty [ACCORDING TO BOOK]
-        p_t = self.mid + penalty
-
-        return p_t
 
     def reset(self):
         """Resets the environment
@@ -599,9 +547,10 @@ class SimpleEnv(gym.Env):
 
         self.mid = self.mu
         self.Q_t = self.Q_0
-        self.V_t = self.H_t()  # the value process involves no cash at the start
+        self.V_t = self.H_t()   # the value process involves no cash at the start
         self.t = 0
-        self.X_t = 0  # the cash process
+        self.X_t = 0            # the cash process
+
 
     def render(self, mode='human', close=False):
         """Prints useful stats of the environment and the agent
@@ -626,60 +575,3 @@ class SimpleEnv(gym.Env):
         print(f'Current cash process: {np.round(self.X_t, 2)}')
         print(f'Current value process: {np.round(self.V_t, 2)}')
         print(20 * '-' + '\n')
-
-
-if __name__ == "__main__":
-
-    rho = 0.01
-
-    # Ska de vara här?
-    Q_learning_bid = dict()
-    Q_learning_ask = dict()
-
-
-    def cara(x):
-        return -np.exp(-rho * x)
-
-
-    # ----- SIMULATING -----
-
-    env = SimpleEnv(T=30, dp=0.01, printing=True, debug=False)
-
-    rewards = []  # to save the rewards
-
-    strategy = "fixed"
-    n = 100
-
-    print(n, "epochs will be simulated with the strategy:", strategy)
-
-    for _ in range(n):
-
-        env.reset()
-
-        gamma = 1
-        disc_reward = 0
-
-        while env.t < env.T:
-
-            if strategy == "analytically":
-                action = env.discrete_analytically_optimal()  # the analytically optimal action
-            elif strategy == "random":
-                action = env.action_space.sample()  # a random action
-            elif strategy == "fixed":
-                action = np.array([2, 2]) - env.min_dp  # a fixed action of 2 ticks away
-
-            disc_reward += env.step(action)[1] * (gamma ** env.t)
-
-        rewards.append(disc_reward)
-
-    print(np.mean(rewards))
-
-"""import matplotlib.pyplot as plt
-
-
-q_1 = dict()
-for t, q in env.Q_learning_ask.keys():
-    if q == 1:
-        q_1[t] = env.Q_learning_ask[t, q]
-
-plt.scatter(q_1.keys(), q_1.values())"""

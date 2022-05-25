@@ -112,12 +112,14 @@ class MonteCarloEnv(gym.Env, ABC):
         self.set_action_space()
         self.set_observation_space()
 
+
     def load_database(self, file_name = "environments/mc_model/starts_database/start_bank_n100000.pkl"):
         file = open(file_name, "rb")
 
         lob_data_base = pickle.load(file)
 
         return lob_data_base
+
 
     def set_action_space(self):
         """
@@ -139,6 +141,7 @@ class MonteCarloEnv(gym.Env, ABC):
         }
         self.action_space = gym.spaces.Dict(spaces)
 
+
     def _get_action_space_shape(self):
         """
         Returns the shape of the action space as a tuple
@@ -147,6 +150,7 @@ class MonteCarloEnv(gym.Env, ABC):
         depths = self.action_space["depths"].high - self.action_space["depths"].low + 1
         MO = self.action_space["market order"].n
         return tuple(np.append(depths, MO))
+
 
     def set_observation_space(self):
         """
@@ -161,27 +165,11 @@ class MonteCarloEnv(gym.Env, ABC):
             low = -np.inf * np.ones(obs_dim)
             high = np.inf * np.ones(obs_dim)
             self.observation_space = gym.spaces.Box(low=low, high=high)
-        """spaces = {
-            'spread': gym.spaces.Box(low=1, high=5, shape=(1,), dtype=np.int16),
-            't': gym.spaces.Box(low=0, high=self.T/self.num_time_buckets, shape=(1,), dtype=np.int16),
-            'inventory': gym.spaces.Box(low=-self.max_Q, high=self.max_Q, shape=(1,), dtype=np.int16),
-            'q_bid': gym.spaces.Box(low=0, high=50, shape=(self.num_levels,), dtype=np.int16),
-            'q_ask': gym.spaces.Box(low=0, high=50, shape=(self.num_levels,), dtype=np.int16)
-        }
-        self.observation_space = gym.spaces.Dict(spaces)"""
+
 
     def state(self):
         """
         Returns the current observable state
-
-
-        OLD
-        # Creates an array of (0.2, 0.4, 0.6, 0.8) (for num_time_steps=5) which are the lower thresholds for each
-            # time interval
-            time_thresholds = np.linspace(0, 1 - 1/self.num_time_steps, self.num_time_steps)
-            # Finds the current time interval
-            current_time_interval = int(len(time_thresholds) - np.argmax(np.flip(self.t/self.T >= time_thresholds)))
-
 
         Returns
         -------
@@ -189,10 +177,6 @@ class MonteCarloEnv(gym.Env, ABC):
             the observation space in terms of (time_varible, inventory_variable)
         """
 
-        # inventory_variable = np.min(
-        #     [np.ceil(self.Q_t / self.kappa * self.num_inv_buckets), self.num_inv_buckets]) * (
-        #                                  self.Q_t > 0) + np.max(
-        #     [np.floor(self.Q_t / self.kappa * self.num_inv_buckets), -self.num_inv_buckets]) * (self.Q_t < 0)
 
         # New inventory variable
         inventory_variable = np.min([np.ceil(self.Q_t / self.kappa), self.num_inv_buckets]) * (self.Q_t > 0) + \
@@ -205,12 +189,14 @@ class MonteCarloEnv(gym.Env, ABC):
 
         return int(inventory_variable), int(time_variable)
 
+
     def state_deep(self):
         lob = self.mc_model.ob.data[:, 1:].flatten()
         inv = self.Q_t
         t = self.t
         state = tuple(np.concatenate([np.array([inv, t]), lob]))
         return th.from_numpy(np.asarray(state)).float().unsqueeze(0)
+
 
     def step(self, action: dict):
         """
@@ -223,28 +209,6 @@ class MonteCarloEnv(gym.Env, ABC):
         self.H_t_previous = self.H_t
 
         if self.t < self.T - self.dt:
-
-            # --------------- Market order execution ---------------
-
-            if action['market order'] == 1:
-                # The market maker can place a MO with the volume equal to the volume available on the best bid/ask.
-                # Other market participants cannot walk the book so it's only fair that the MM cannot do it either in
-                # 'one shot'.
-
-                if self.Q_t > 0:  # Decreasing net inventory
-                    volume_to_sell_current_trade = np.min([self.Q_t, self.mc_model.ob.bid_volume])
-                    self.X_t += self.mc_model.ob.sell_n(volume_to_sell_current_trade)
-                    self.mc_model.ob.change_volume(level=self.mc_model.ob.bid, absolute_level=True,
-                                                   volume=-volume_to_sell_current_trade)
-                    self.Q_t -= volume_to_sell_current_trade
-
-                elif self.Q_t < 0:  # Increasing net inventory
-                    volume_to_buy_current_trade = np.min([-self.Q_t, self.mc_model.ob.ask_volume])
-                    self.X_t -= self.mc_model.ob.buy_n(volume_to_buy_current_trade)
-                    self.mc_model.ob.change_volume(level=self.mc_model.ob.ask, absolute_level=True,
-                                                   volume=volume_to_buy_current_trade)
-                    self.Q_t += volume_to_buy_current_trade
-
             # --------------- Placing limit orders in the order book ---------------
             mm_bid_depth, mm_ask_depth = action['depths']
             self.order_volumes['bid'] = self.default_order_size
@@ -275,7 +239,6 @@ class MonteCarloEnv(gym.Env, ABC):
 
         else:
             # --------------- Liquidating the inventory ---------------
-
             if self.debug:
                 print("Liquidating the inventory")
                 print(self.mc_model.ob.data)
@@ -293,7 +256,7 @@ class MonteCarloEnv(gym.Env, ABC):
                 # walk the book in order to liquidate all of its holdings
                 if self.Q_t > 0:
                     volume_to_sell_current_trade = np.min([self.Q_t, self.mc_model.ob.bid_volume])
-                    if self.mc_model.ob.bid_volume == 0 and self.mc_model.ob.outside_volume != 0:  # self.Q_t != 0 and
+                    if self.mc_model.ob.bid_volume == 0 and self.mc_model.ob.outside_volume != 0:
                         volume_to_sell_current_trade = self.mc_model.ob.outside_volume
                     elif self.mc_model.ob.bid_volume == 0 and self.mc_model.ob.outside_volume == 0:
                         can_trade = False
@@ -312,7 +275,7 @@ class MonteCarloEnv(gym.Env, ABC):
                                   f"remaining inventory {self.Q_t}")
                 elif self.Q_t < 0:
                     volume_to_buy_current_trade = np.min([-self.Q_t, self.mc_model.ob.ask_volume])
-                    if self.mc_model.ob.ask_volume == 0 and self.mc_model.ob.outside_volume != 0:  # and self.Q_t != 0
+                    if self.mc_model.ob.ask_volume == 0 and self.mc_model.ob.outside_volume != 0:
                         volume_to_buy_current_trade = self.mc_model.ob.outside_volume
                     elif self.mc_model.ob.ask_volume == 0 and self.mc_model.ob.outside_volume == 0:
                         can_trade = False
@@ -339,9 +302,6 @@ class MonteCarloEnv(gym.Env, ABC):
                 print(f"MM's inventory after liquidation: {self.Q_t}")
 
         # --------------- Simulating the environment ---------------
-
-        # TODO: simulate lob events and investigate if MM's outstanding orders have been filled. If so adjust inventory
-
         self.t += self.dt  # increase the current time stamp
 
         # Simulating the LOB
@@ -359,37 +319,27 @@ class MonteCarloEnv(gym.Env, ABC):
             mm_bid_abs = self.quotes_absolute_level["bid"]
             mm_ask_abs = self.quotes_absolute_level["ask"]
 
-            # To manage cancellations - NOT NEEDED ANYMORE
-            has_bought = 0
-            has_sold = 0
-
             # Looping through all simulated results
             for n in range(simulation_results['num_events']):
                 event = simulation_results['event'][n]
                 absolute_level = simulation_results['abs_level'][n]
                 size = simulation_results['size'][n]
 
-                # print(self.order_volumes)
-
                 # Arriving LO buy or LO buy cancellation
                 if event in [0, 4] and absolute_level == mm_bid_abs:
                     if event == 0:  # LO buy
                         vol_on_mm_bid += size
-                        # self.order_volumes["bid"] = np.max([np.min([vol_on_mm_bid, 5 - has_bought]), 0])
+                        
                     else:  # LO buy cancellation
                         vol_on_mm_bid -= size
-                        """if vol_on_mm_bid < self.order_volumes["bid"]:
-                            self.order_volumes["bid"] = vol_on_mm_bid"""
 
                 # Arriving LO sell or LO sell cancellation
                 elif event in [1, 5] and absolute_level == mm_ask_abs:
                     if event == 1:  # LO sell
                         vol_on_mm_ask += size
-                        # self.order_volumes["ask"] = np.max([np.min([vol_on_mm_ask, 5 - has_sold]), 0])
+                        
                     else:  # LO sell cancellation
                         vol_on_mm_ask -= size
-                        """if vol_on_mm_ask < self.order_volumes["ask"]:
-                            self.order_volumes["ask"] = vol_on_mm_ask"""
 
                 # MM's orders only affected by MOs
                 elif event in [2, 3] and self.t != self.T:
@@ -402,14 +352,14 @@ class MonteCarloEnv(gym.Env, ABC):
                                 self.order_volumes['bid'] -= mm_trade_volume  # decrease outstanding LO volume
                                 self.X_t -= mm_trade_volume * absolute_level  # deduct cash
                                 self.Q_t += mm_trade_volume  # adjust inventory
-                                # has_bought += mm_trade_volume
+
                         else:
                             # IMPLICIT ASSUMPTION THAT MARKET MAKER HAS FIRST ORDER PRIORITY
                             mm_trade_volume = np.min([size, self.order_volumes['bid']])
                             self.order_volumes['bid'] -= mm_trade_volume
                             self.X_t -= mm_trade_volume * absolute_level
                             self.Q_t += mm_trade_volume
-                            # has_bought += mm_trade_volume
+
                         vol_on_mm_bid -= size
 
                     # event type 3: 'mo ask', i.e., MO buy order arrives
@@ -421,18 +371,16 @@ class MonteCarloEnv(gym.Env, ABC):
                                 self.order_volumes['ask'] -= mm_trade_volume  # decrease outstanding LO volume
                                 self.X_t += mm_trade_volume * absolute_level  # increase cash
                                 self.Q_t -= mm_trade_volume  # adjust inventory
-                                # has_sold += mm_trade_volume
+                                
                         else:
                             # IMPLICIT ASSUMPTION THAT MARKET MAKER HAS FIRST ORDER PRIORITY
                             mm_trade_volume = np.min([size, self.order_volumes['ask']])
                             self.order_volumes['ask'] -= mm_trade_volume
                             self.X_t += mm_trade_volume * absolute_level
                             self.Q_t -= mm_trade_volume
-                            # has_sold += mm_trade_volume
+                            
                         vol_on_mm_ask -= size
 
-        # self.print_simulation_results(simulation_results)
-        # TODO : adjust X_t_previous if MM places MO
         if self.debug:
             if not self.MO_action:
                 if self.X_t != self.print_MO_results(simulation_results, self.X_t_previous, printing=False) \
@@ -442,7 +390,6 @@ class MonteCarloEnv(gym.Env, ABC):
                     print("--> should have been", self.X_t, "at time", self.t)
                     input("Next:")
 
-        # TODO: cancel MM's outstanding
         # If the market maker has an outstanding buy order, cancel the entire volume
         if self.t != self.T:
             if self.order_volumes['bid'] > 0:
@@ -472,11 +419,11 @@ class MonteCarloEnv(gym.Env, ABC):
         else:
             return self.state_deep(), self._get_reward()
 
-    def _get_reward(self):
-        # TODO: different rewards for final step and intermediate steps
 
+    def _get_reward(self):
         # Added running inventory penalty
         return self.X_t + self.H_t - (self.X_t_previous + self.H_t_previous) - self.phi * self.Q_t ** 2
+
 
     def pre_run(self, n_steps=int(1e4)):
         """
@@ -488,6 +435,7 @@ class MonteCarloEnv(gym.Env, ABC):
             the number of events that should be simulated in the LOB
         """
         self.mc_model.simulate(int(n_steps))
+
 
     def reset(self, randomized = None):
         self.X_t = 0
@@ -519,6 +467,7 @@ class MonteCarloEnv(gym.Env, ABC):
         print(f'State = {self.state()}')
         print('=' * 40 + '\n')
 
+
     def print_simulation_results(self, simulation_results):
         for key in simulation_results.keys():
             if key == "event":
@@ -527,6 +476,7 @@ class MonteCarloEnv(gym.Env, ABC):
                     print(self.mc_model.inverse_event_types[event], end=", ")
             else:
                 print("\n", key, ":", simulation_results[key], end="")
+
 
     def print_MO_results(self, simulation_results, cash, printing=True):
         if 2 in simulation_results["event"] or 3 in simulation_results["event"]:
@@ -623,22 +573,15 @@ def mid_price_comparison(mid_prices_natural, mid_prices_mm_sym, mid_prices_mm_as
     mm_sym.set_title("Symmetrical market making")
     mm_asymmetrical.set_title("Asymmetrical market making")
 
-    # natural_mid_min = np.min(mid_prices_natural, axis=0)
     natural_mid_std = np.std(mid_prices_natural, axis=0)
     natural_mid_mean = np.mean(mid_prices_natural, axis=0)
-    # natural_mid_max = np.max(mid_prices_natural, axis=0)
 
-    # sym_mid_min = np.min(mid_prices_mm_sym, axis=0)
     sym_mid_mean = np.mean(mid_prices_mm_sym, axis=0)
     sym_mid_std = np.std(mid_prices_mm_sym, axis=0)
-    # sym_mid_max = np.max(mid_prices_mm_sym, axis=0)
 
-    # asym_mid_min = np.min(mid_prices_mm_asym, axis=0)
     asym_mid_mean = np.mean(mid_prices_mm_asym, axis=0)
     asym_mid_std = np.std(mid_prices_mm_asym, axis=0)
-    # asym_mid_max = np.max(mid_prices_mm_asym, axis=0)
 
-    # natural.fill_between(list(range(len(natural_mid_min))), natural_mid_min, natural_mid_max, alpha = 0.3, color="purple")
     natural.plot(natural_mid_mean, color="purple")
     natural.fill_between(list(range(len(natural_mid_mean))), natural_mid_mean - natural_mid_std, natural_mid_mean + natural_mid_std, alpha=0.3, color="purple")
     print(f'std natural = {natural_mid_std[-1]}')
@@ -649,7 +592,6 @@ def mid_price_comparison(mid_prices_natural, mid_prices_mm_sym, mid_prices_mm_as
     mm_sym.set_ylim([np.min([np.min(sym_mid_mean[:-1] - sym_mid_std[:-1]), np.min(natural_mid_mean - natural_mid_std)]), np.max([np.max(sym_mid_mean[:-1] + sym_mid_std[:-1]), np.max(natural_mid_mean + natural_mid_std)])])
 
     mm_sym.plot(sym_mid_mean[:-1], color="purple")
-    # mm_sym.fill_between(list(range(len(sym_mid_mean))), sym_mid_min, sym_mid_max, alpha=0.3, color="purple")
     mm_sym.fill_between(list(range(len(sym_mid_mean[:-1]))), sym_mid_mean[:-1] - sym_mid_std[:-1], sym_mid_mean[:-1] + sym_mid_std[:-1], alpha=0.3, color="purple")
     mm_sym.set_xlabel("t")
     print(f'std mm sym = {sym_mid_std[-2]}')
@@ -659,42 +601,8 @@ def mid_price_comparison(mid_prices_natural, mid_prices_mm_sym, mid_prices_mm_as
     mm_sym.set_ylim([np.min([np.min(sym_mid_mean[:-1] - sym_mid_std[:-1]), np.min(natural_mid_mean - natural_mid_std)]), np.max([np.max(sym_mid_mean[:-1] + sym_mid_std[:-1]), np.max(natural_mid_mean + natural_mid_std)])])
 
     mm_asymmetrical.plot(asym_mid_mean[:-1], color="purple")
-    # mm_asymmetrical.fill_between(list(range(len(asym_mid_mean))), asym_mid_min, asym_mid_max, alpha=0.3, color="purple")
     mm_asymmetrical.fill_between(list(range(len(asym_mid_mean[:-1]))), asym_mid_mean[:-1] - asym_mid_std[:-1], asym_mid_mean[:-1] + asym_mid_std[:-1], alpha=0.3, color="purple")
     mm_asymmetrical.set_xlabel("t")
     mm_asymmetrical.set_ylabel("price")
     mm_asymmetrical.set_ylabel("mid price")
     mm_asymmetrical.get_yaxis().get_major_formatter().set_useOffset(False)
-
-
-if __name__ == '__main__':
-    x0 = init_LOB(num_levels=10, init_ask=10001, init_spread=2, init_volume=1)
-    env = MonteCarloEnv(include_spread_levels=True, num_levels=10, mm_priority=True, T=int(1e4),
-                        num_time_buckets=10)
-
-    mid_prices = []
-    Q_ts = []
-    X_ts = []
-
-    for episode in range(1):
-        mid_prices.append([])
-        Q_ts.append([])
-        X_ts.append([])
-
-        env.reset()
-        t = time.time()
-        tot_reward = 0
-        while env.t < env.T:
-            reward = env.step({'depths': np.array([1, 1], dtype='int16'), 'market order': 0})
-            # print(f'Reward: {reward}')
-            # tot_reward += reward
-            # print(f'Tot reward: {tot_reward}')
-            env.render()
-
-            mid_prices[episode].append(env.mc_model.ob.mid / 100)
-            Q_ts[episode].append(env.Q_t)
-            X_ts[episode].append(env.X_t / 100)
-        print(time.time() - t)
-        # print(env.num_errors)
-
-    # showcase_plot(mid_prices, Q_ts, X_ts)

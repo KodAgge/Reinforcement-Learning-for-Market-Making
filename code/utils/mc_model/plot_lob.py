@@ -8,13 +8,15 @@ def plot_LOB(lob_data, k=3):
 
     Parameters
     ----------
-    lob_data :
+    lob_data : np.array
+        a numpy array containt the LOB data
     k : int
         the number of "outer" price levels to exclude in plotting
         k = 3 is quite nice if the spread is small (≤2-3). If the spread is larger, than decrease k. Minimum is 0.
 
     Returns
     -------
+    None
 
     """
 
