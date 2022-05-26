@@ -119,6 +119,15 @@ These strategies are first visualized in a figure where one can se their invento
     <img src="code/images/VisualizationSPMv2.png"/>
 </div>
 
+
+<center><em>A visualiztion of the inventory, cash and value processes of different strategies.</em></center> 
+
+<br>
+<br>
+<br>
+
+<center>
+
 | Strategy &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Average reward   &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Standard deviation of reward  |
 | :-----------          | :-----------:             | :-----------:                 |
 | Q-learning            |                           |                               |
@@ -130,6 +139,14 @@ These strategies are first visualized in a figure where one can se their invento
 | Benchmarks            |                           |                               |
 | - *constant*          |  2.674 x 10<sup>-2</sup>  | 2.848 x 10<sup>-2</sup>       |
 | - *random*            |  1.852 x 10<sup>-2</sup>  | 3.520 x 10<sup>-2</sup>       |
+
+</center>
+
+<center><em>The average reward and standard deviation of different strategies.</em></center> 
+
+<br>
+<br>
+<br>
 
 From these results it is clear that using Q-learning we were able to find strategies that match the analytically optimal strategies in terms of average rewards!
 
@@ -154,6 +171,14 @@ These strategies are first visualized in a figure where one can se their invento
     <img src="code/images/VisualizationLHv2.png"/>
 </div>
 
+<center><em>A visualiztion of the inventory, cash and value processes of different strategies.</em></center> 
+
+<br>
+<br>
+<br>
+
+<center>
+  
 | Strategy &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Average reward   &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; | Standard deviation of reward  |
 | :-----------          | :-----------:             | :-----------:                 |
 | Q-learning            |                   |                               |
@@ -165,6 +190,15 @@ These strategies are first visualized in a figure where one can se their invento
 | Benchmarks            |                   |                               |
 | - *constant*          | 0.34              | 0.71                          |
 | - *random*            | 0.05              | 0.71                          |
+
+</center>
+
+<center><em>The average reward and standard deviation of different strategies.</em></center> 
+
+<br>
+<br>
+<br>
+
 
 From these results it is clear that DDQN was able to find better strategies than Q-learning, both in terms of average rewards and standard deviation!
 
