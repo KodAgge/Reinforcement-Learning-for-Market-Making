@@ -115,6 +115,8 @@ Here is an explanation of all the different strategies:
 
 These strategies are first visualized in a figure where one can se their inventory (_Q<sub>t</sub>_), cash (_X<sub>t</sub>_) and value (_V<sub>t</sub>_, the cash + the value of the inventory) processes. Second their average rewards are displayed in a table.
 
+<br>
+
 <div>
     <img src="code/images/VisualizationSPMv2.png"/>
 </div>
@@ -166,6 +168,8 @@ We now set up a larger market making problem (the trading interval is 200 times 
 > *random* - This is the benchmark strategy where the market maker always quotes at random depths
 
 These strategies are first visualized in a figure where one can se their inventory (_Q<sub>t</sub>_), cash (_X<sub>t</sub>_) and value (_V<sub>t</sub>_, the cash + the value of the inventory) processes. Second their average rewards are displayed in a table.
+
+<br>
 
 <div>
     <img src="code/images/VisualizationLHv2.png"/>
