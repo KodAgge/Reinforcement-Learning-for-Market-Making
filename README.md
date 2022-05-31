@@ -2,16 +2,16 @@
 
 This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken (SEB) and can be found **[here](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/blob/main/Reinforcement%20Learning%20for%20Market%20Making.pdf)**.
 
-In this project we have used tabular and deep reinforcement learning methods in order to find optimal market making strategies. Continue reading for more!
+In this project, we have used tabular and deep reinforcement learning methods in order to find optimal market making strategies. Continue reading for more!
 
 ## What is Reinforcement Learning?
 For anyone not familiar with reinforcement learning (RL), it's a concept that stems from the idea of how humans and animals learn: by interacting in an environment and learning from experience. RL has lately gotten a lot of attention, and one of the most famous examples is DeepMind's AlphaGo:
 
-> AlphaGo was the first computer program to beat a world champion in the board game of Go. If you haven't seen the documentary about AlphaGo, you should check it out. It's available on Youtube **[here](https://www.youtube.com/watch?v=WXuK6gekU1Y)**. Other cool stuff that has been done is teaching a computer program to play Atari arcade games on a superhuman level (the first example of something called _deep Q-networks_) and DeepMind's AlphaFold. AlphaFold is the world's greatest computer program for protein structure prediction. 
+> AlphaGo was the first computer program to beat a world champion in the board game Go. If you haven't seen the documentary about AlphaGo, you should check it out. It's available on Youtube **[here](https://www.youtube.com/watch?v=WXuK6gekU1Y)**. Other cool stuff that has been done is teaching a computer program to play Atari arcade games on a superhuman level (the first example of something called _deep Q-networks_) and DeepMind's AlphaFold. AlphaFold is the world's greatest computer program for protein structure prediction. 
 
 But for what can reinforcement learning be used? It is built upon the assumption that there is an environment an agent can interact with &ndash; most commonly a Markov decision process (MDP). In a decision process, the interaction is as follows:
 
-> At each step *t* the agent (decision maker):
+> At each step *t* the agent (decision-maker):
 > * Receives an observation of the current state _S<sub>t</sub>_
 > * Executes an action _A<sub>t</sub>_
 >
@@ -27,19 +27,19 @@ This interaction is explained by the following image.
 
 Let's have a look at an example so we better can grasp the concepts.
 
-> We just started playing a game of chess, none of the players have made a move, so the board is in its starting position. Then the state, _S<sub>t</sub>_, is the current board configuration. The agent may then choose to move its leftmost pawn one step forward, which would be its action, _A<sub>t</sub>_. After the agent has made its move, the opponent would make its move. Following this, the agent would have a look at the new board state, _S<sub>t+1</sub>_, and receive a reward _R<sub>t+1</sub>_. This reward could be defined in many different ways, for instance the value of the opponent's lost pieces minus the value of the agent's lost pieces or the increase in the probability of winning the game.
+> We just started playing a game of chess; none of the players have made a move, so the board is in its starting position. Then the state, _S<sub>t</sub>_, is the current board configuration. The agent may then choose to move its leftmost pawn one step forward, which would be its action, _A<sub>t</sub>_. After the agent has made its move, the opponent would make its move. Following this, the agent would have a look at the new board state, _S<sub>t+1</sub>_, and receive a reward _R<sub>t+1</sub>_. This reward could be defined in many different ways, for instance, the value of the opponent's lost pieces minus the value of the agent's lost pieces or the increase in the probability of winning the game.
 
 There are many ways to perform reinforcement learning, but what they have in common is that they at every state want to find the action that maximizes the expected cumulative reward. We have chosen to focus on two different RL methods to find optimal market making strategies: *Q-learning* and *Double Deep Q-Network* (DDQN).
 
 
 ### Q-learning
-*Q-learning* is one of the earliest developed reinforcement learning methods and is a so called "tabular" method. It essentially wants to find the value of the expected cumulative reward for every pair of state ***s*** and action *a*, _Q(_***s***,*a)*. While this is transparent and intuitive, it becomes infeasible when there are very many combinations of states and actions. Furthermore, there is also a lack of generalizability &ndash; it cannot make use of its previous experiences when it faces a very similar but previously unvisited state.
+*Q-learning* is one of the earliest developed reinforcement learning methods and is a so-called "tabular" method. It essentially wants to find the value of the expected cumulative reward for every pair of state ***s*** and action *a*, _Q(_***s***,*a)*. While this is transparent and intuitive, it becomes infeasible when there are very many combinations of states and actions. Furthermore, there is also a lack of generalizability &ndash; it cannot make use of its previous experiences when it faces a very similar but previously unvisited state.
 
 
 ### Double Deep Q-Network
-What one can do instead of using tabular methods is to use an approximative function to estimate the expected cumulative rewards. Using this method, one reduces the number of learnable parameters from the number combinations of states and actions (as for tabular methods) to the number of parameters that parameterizes the function. Fantastic!
+What one can do instead of using tabular methods is to use an approximative function to estimate the expected cumulative rewards. Using this method, one reduces the number of learnable parameters from the number combinations of states and actions (as for tabular methods) to the number of parameters that parameterize the function. Fantastic!
 
-While there are many ways to structure this approximative function, using neural networks has lately become very popular. These methods are so called deep reinforcement learning (DRL) methods. While there are a plethora of DRL methods, we have chosen to focus on *Double Deep Q-Network* (DDQN) which quite closely replicates the ideas behind Q-learning. This technique has for instance been used to learn to play Atari games.
+While there are many ways to structure this approximative function, using neural networks has lately become very popular. These methods are so-called deep reinforcement learning (DRL) methods. While there are a plethora of DRL methods, we have chosen to focus on *Double Deep Q-Network* (DDQN), which quite closely replicates the ideas behind Q-learning. This technique has, for instance, been used to learn to play Atari games.
 
 With this short introduction to reinforcement learning done, we now want to apply it to market making. But what is market making?
 
@@ -54,20 +54,20 @@ Market making essentially boils down to providing options for others to trade wi
     <img src="code/images/Valutakurser.png"/>
 </div>
 
-In the process of market making these bid and ask prices have to be set and continuously updated. This is not an easy task. Quoting "bad" prices for the customers would mean that the market maker could earn a larger spread, however, fewer trades would occur. On the contrary, setting "good" prices would mean more trades but a lower spread and a higher inventory risk. It is thus very important that the quoting is optimized.
+In the process of market making, these bid and ask prices have to be set and continuously updated. This is not an easy task. Quoting "bad" prices for the customers would mean that the market maker could earn a larger spread, however, fewer trades would occur. On the contrary, setting "good" prices would mean more trades but a lower spread and a higher inventory risk. It is thus very important that the quoting is optimized.
 
 But before we apply reinforcement learning to this, let's formalize it a bit.
 
 ### Formalization of the market
 
-In today's modern markets there are an endless number of order types, from basic to very exotic ones. We will however focus on the three basic order types &ndash; *limit orders*, *market orders*, and *cancel orders*. Note that these all come in their respective *buy* annd *sell* variant.
+In today's modern markets there are an endless number of order types, from basic to very exotic ones. We will, however, focus on the three basic order types &ndash; *limit orders*, *market orders*, and *cancel orders*. Note that these all come in their respective *buy* and *sell* variants.
 
 > * A *limit order* is an offer to buy/sell a specified quantity at a maximum/minimum
 price.
 > * A *market order* is an order that immediately executes against the outstanding limit orders at the best available price.
 > * A *cancellation order* cancels a limit order that a market participant has already put out.
 
-All limit orders are aggregated and displayed in a so called *limit order book* (LOB). An illustration of an LOB can be seen in the figure below.
+All limit orders are aggregated and displayed in a so-called *limit order book* (LOB). An illustration of an LOB can be seen in the figure below.
 
 <div>
     <img src="code/images/LOBIllustration.png" width=800/>
@@ -80,12 +80,12 @@ For our thesis, we used two ways of simulating the market. The first model was u
 
 #### The Simple Probabilistic Model
 
-The simple probabilistic model (SPM) is an adaptation of the model presented in Chapter 10.2 in Cartea et al.'s book *Algorithmic and High-Frequency Trading*. It does **not** explicitly model the LOB but it captures some important characteristics of the market. Importantly it also allows for derivations of optimal market making strategies.
+The simple probabilistic model (SPM) is an adaptation of the model presented in Chapter 10.2 in Cartea et al.'s book *Algorithmic and High-Frequency Trading*. It does **not** explicitly model the LOB, but it captures some important characteristics of the market. Importantly it also allows for derivations of optimal market making strategies.
 
 If you want to have a look at how this environment is simulated, visit **[simple_model_mm.py](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/blob/main/code/environments/simple_model/simple_model_mm.py)**.
 
 #### The Markov Chain Model
-The Markov chain (MC) model was developed by Hult and Kiessling in their paper *[Algorithmic trading with Markov Chains](https://www.researchgate.net/publication/268032734_ALGORITHMIC_TRADING_WITH_MARKOV_CHAINS)*. This environment is significantly more complex than the SPM and it explicitly models the LOB. It is thus very fitting for deep reinforcement learning!
+The Markov chain (MC) model was developed by Hult and Kiessling in their paper *[Algorithmic trading with Markov Chains](https://www.researchgate.net/publication/268032734_ALGORITHMIC_TRADING_WITH_MARKOV_CHAINS)*. This environment is significantly more complex than the SPM, and it explicitly models the LOB. It is thus very fitting for deep reinforcement learning!
 
 If you want to have a look at how this environment is simulated, visit **[mc_environment.py](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/blob/main/code/environments/mc_model/mc_environment.py)** and **[mc_environment_deep.py](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/blob/main/code/environments/mc_model/mc_environment_deep.py)**.
 
@@ -157,7 +157,7 @@ For more on how this was done, visit the notebook called **[Q-learning in the si
 ### Tabular vs Deep Reinforcement Learning methods
 As stated before, the Markov chain model allows for a more sophisticated simulation of the market in comparison to the simple probabilistic model. 
 
-We now set up a larger market making problem (the trading interval is 200 times longer) which makes it possible to compare tabular and deep reinforcement learning methods. Since there is no analytically optimal strategy in this model, we once again included some benchmarking strategies in order to better grasp the results.
+We now set up a larger market making problem (the trading interval is 200 times longer), which makes it possible to compare tabular and deep reinforcement learning methods. Since there is no analytically optimal strategy in this model, we once again included some benchmarking strategies in order to better grasp the results.
 
 > *best single run* - The Q-learning/DDQN was run 8 seperate times, this was the best (in terms of average reward) of those 8 Q-learning/DDQN strategies
 >
@@ -167,7 +167,7 @@ We now set up a larger market making problem (the trading interval is 200 times 
 >
 > *random* - This is the benchmark strategy where the market maker always quotes at random depths
 
-These strategies are first visualized in a figure where one can se their inventory (_Q<sub>t</sub>_), cash (_X<sub>t</sub>_) and value (_V<sub>t</sub>_, the cash + the value of the inventory) processes. Second their average rewards are displayed in a table.
+These strategies are first visualized in a figure where one can se their inventory (_Q<sub>t</sub>_), cash (_X<sub>t</sub>_), and value (_V<sub>t</sub>_, the cash + the value of the inventory) processes. Second their average rewards are displayed in a table.
 
 <br>
 
@@ -213,7 +213,7 @@ For more on how this was done, visit the notebooks called **[Q-learning in the M
 
 We will summarize our results in two key points:
 
-* Using reinforcement learning we were able to find strategies that match analytically optimal strategies in performance
+* Using reinforcement learning, we were able to find strategies that match analytically optimal strategies in performance
 * Deep reinforcement learning methods were able to outperform tabular reinforcement learning methods in our setup of the market making problem
 
 
