@@ -271,7 +271,16 @@ An overview of the repository structure is shown below.
 ## Credits
 The code in **[code/environments/mc_model/lob_utils/](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/tree/main/code/environments/mc_model/lob_utils)** as well as **[mc_lob_simulation_class.py](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/blob/main/code/environments/mc_model/mc_lob_simulation_class.py)** was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can read her licentiate thesis **[here](https://www.diva-portal.org/smash/record.jsf?dswid=4507&pid=diva2%3A1556150&c=2&searchType=SIMPLE&language=sv&query=hanna+hultin+kth&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&sortOrder2=title_sort_asc&onlyFullText=false&sf=all)**. Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). *[Algorithmic trading with Markov Chains](https://www.researchgate.net/publication/268032734_ALGORITHMIC_TRADING_WITH_MARKOV_CHAINS)*.). 
 
+## Compatibility
 
+At the time this is written (June 2022) the source code of the PFRL package has to be edited slightly in order to get the multiprocessing to work on *Windows*. In the file **reduction.py** do the following:
+
+```diff
+- import pickle
++ import dill as pickle
+```
+
+For more, visit the following **[thread](https://github.com/chainer/chainerrl/issues/175)**.
 
 ## Our contact information :mailbox:
 If you want to contact us to discuss our thesis, reinforcement learning, machine learning, algorithmic trading, or anything else, feel free to add us on LinkedIn!
