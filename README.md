@@ -253,6 +253,8 @@ An overview of the repository structure is shown below.
 │   ├── utils                 <- utils used for the different models, training and plotting
 |   |   ├── mc_model         
 │   |   └── simple_model
+│   |
+│   ├── other notebooks       <- other useful notebooks, not as polished though
 |   |
 |   ├── requirements.txt
 |   |
