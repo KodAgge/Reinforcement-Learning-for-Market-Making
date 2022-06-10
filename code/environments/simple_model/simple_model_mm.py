@@ -29,8 +29,6 @@ class SimpleEnv(gym.Env):
         the starting price
     std : float
         the standard deviation of the price movement
-    utility_fnc : function
-        a utility function used for the reward
     lambda_pos : float
         the intensity of the Poisson process dictating the arrivals of sell MOs
     lambda_neg : float
@@ -64,7 +62,7 @@ class SimpleEnv(gym.Env):
     """
 
     def __init__(self,
-                 T=10, dt=1, Q=3, dq=1, Q_0=0, dp=0.1, min_dp=1, mu=100, std=0.01, utility_fnc=None, lambda_pos=1,
+                 T=10, dt=1, Q=3, dq=1, Q_0=0, dp=0.1, min_dp=1, mu=100, std=0.01, lambda_pos=1,
                  lambda_neg=1, kappa=100, alpha=1e-4, phi=1e-5, pre_run=None, printing=False, debug=False, d=5,
                  use_all_times=True, analytical=False, breaching_penalty=False, breach_penalty=20,
                  reward_scale=1, breach_penalty_function=np.square):
@@ -84,7 +82,6 @@ class SimpleEnv(gym.Env):
         self.mu = mu            # average price of the stock
         self.std = std          # standard deviation the price movement
 
-        self.U = utility_fnc    # utility function to evaluate reward
         self.alpha = alpha      # penalty for holding volume
         self.phi = phi          # the running inventory penalty parameter
 
