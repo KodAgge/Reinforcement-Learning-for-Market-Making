@@ -1,6 +1,6 @@
 # Reinforcement Learning for Market Making
 
-This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken (SEB) and can be found **[here](https://kth.diva-portal.org/smash/record.jsf?dswid=-5809&pid=diva2%3A1695877&c=1&searchType=SIMPLE&language=sv&query=Reinforcement+Learning+for+Market+Making&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&sortOrder2=title_sort_asc&onlyFullText=false&sf=all)**.
+This is the GitHub repository for our MSc thesis project _Reinforcement Learning for Market Making_ in financial mathematics at KTH Royal Institute of Technology. The thesis was written during the spring of 2022 in collaboration with Skandinaviska Enskilda Banken (SEB) and can be found **[here](https://kth.diva-portal.org/smash/record.jsf?pid=diva2:1695877)**.
 
 In this project, we have used tabular and deep reinforcement learning methods in order to find optimal market making strategies. Continue reading for more!
 
@@ -94,7 +94,7 @@ If you want to have a look at how this environment is simulated, visit **[mc_env
 
 With that out of the way, we can finally have a look at the results!
 
-We will only highlight two key results here, you can find the rest in our **[report](https://kth.diva-portal.org/smash/record.jsf?dswid=-5809&pid=diva2%3A1695877&c=1&searchType=SIMPLE&language=sv&query=Reinforcement+Learning+for+Market+Making&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&sortOrder2=title_sort_asc&onlyFullText=false&sf=all)**.
+We will only highlight two key results here, you can find the rest in our **[report](https://kth.diva-portal.org/smash/record.jsf?pid=diva2:1695877)**.
 
 ### Analytical vs Reinforcement Learning Strategies
 As we said before, the simple probabilistic model allows for the derivation of optimal market making strategies. By setting up a small market making problem with this model, we used Q-learning to find comparable market making strategies. We also included some benchmarking strategies in order to better grasp the results.
@@ -222,7 +222,7 @@ We will summarize our results in two key points:
 ## Thesis
 Hungry for more? Have a look at our thesis!
 
-You can find the full pdf **[here](https://kth.diva-portal.org/smash/record.jsf?dswid=-5809&pid=diva2%3A1695877&c=1&searchType=SIMPLE&language=sv&query=Reinforcement+Learning+for+Market+Making&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&sortOrder2=title_sort_asc&onlyFullText=false&sf=all)**, but we have also included the abstract below.
+You can find the full pdf **[here](https://kth.diva-portal.org/smash/record.jsf?pid=diva2:1695877)**, but we have also included the abstract below.
 
 ### Abstract
 > Market making &ndash; the process of simultaneously and continuously providing buy and sell prices in a financial asset &ndash; is rather complicated to optimize. Applying reinforcement learning (RL) to infer optimal market making strategies is a relatively uncharted and novel research area. Most published articles in the field are notably opaque concerning most aspects, including precise methods, parameters, and results. This thesis attempts to explore and shed some light on the techniques, problem formulations, algorithms, and hyperparameters used to construct RL-derived strategies for market making. First, a simple probabilistic model of a limit order book is used to compare analytical and RL-derived strategies. Second, a market making agent is trained on a more complex Markov chain model of a limit order book using tabular Q-learning and deep reinforcement learning with double deep Q-learning. Results and strategies are analyzed, compared, and discussed. Finally, we propose some exciting extensions and directions for future work in this research field.
@@ -267,7 +267,7 @@ An overview of the repository structure is shown below.
 
 
 ## Credits
-The code in **[code/environments/mc_model/lob_utils/](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/tree/main/code/environments/mc_model/lob_utils)** as well as **[mc_lob_simulation_class.py](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/blob/main/code/environments/mc_model/mc_lob_simulation_class.py)** was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can read her licentiate thesis **[here](https://www.diva-portal.org/smash/record.jsf?dswid=4507&pid=diva2%3A1556150&c=2&searchType=SIMPLE&language=sv&query=hanna+hultin+kth&af=%5B%5D&aq=%5B%5B%5D%5D&aq2=%5B%5B%5D%5D&aqe=%5B%5D&noOfRows=50&sortOrder=author_sort_asc&sortOrder2=title_sort_asc&onlyFullText=false&sf=all)**. Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). *[Algorithmic trading with Markov Chains](https://www.researchgate.net/publication/268032734_ALGORITHMIC_TRADING_WITH_MARKOV_CHAINS)*.). 
+The code in **[code/environments/mc_model/lob_utils/](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/tree/main/code/environments/mc_model/lob_utils)** as well as **[mc_lob_simulation_class.py](https://github.com/KodAgge/Reinforcement-Learning-for-Market-Making/blob/main/code/environments/mc_model/mc_lob_simulation_class.py)** was entirely written by our supervisor at SEB, Hanna Hultin, who kindly let us use her codebase. You can read her licentiate thesis **[here](https://www.diva-portal.org/smash/record.jsf?pid=diva2:1556150)**. Her code for the Markov chain LOB model is based on the work by Hult and Kiessling (Hult, H., & Kiessling, J. (2010). *[Algorithmic trading with Markov Chains](https://www.researchgate.net/publication/268032734_ALGORITHMIC_TRADING_WITH_MARKOV_CHAINS)*.). 
 
 ## Compatibility
 
