@@ -47,35 +47,57 @@ def estimate_rates_lists(data_dict, event_types):
     total_time = np.sum([np.sum(t) for t in data_dict["time"]])
     rates = {}
 
-    lo_sell = [(e == event_types['lo sell']) for e in data_dict["event"]]
-    lo_buy = [(e == event_types['lo buy']) for e in data_dict["event"]]
+    lo_sell = [(e == event_types["lo sell"]) for e in data_dict["event"]]
+    lo_buy = [(e == event_types["lo buy"]) for e in data_dict["event"]]
     lo = [np.logical_or(lo_sell[j], lo_buy[j]) for j in range(num_seq)]
-    mo_bid = [(e == event_types['mo bid']) for e in data_dict["event"]]
-    mo_ask = [(e == event_types['mo ask']) for e in data_dict["event"]]
+    mo_bid = [(e == event_types["mo bid"]) for e in data_dict["event"]]
+    mo_ask = [(e == event_types["mo ask"]) for e in data_dict["event"]]
     mo = [np.logical_or(mo_bid[j], mo_ask[j]) for j in range(num_seq)]
-    cancel_sell = [(e == event_types['cancellation sell']) for e in data_dict["event"]]
-    cancel_buy = [(e == event_types['cancellation buy']) for e in data_dict["event"]]
+    cancel_sell = [(e == event_types["cancellation sell"]) for e in data_dict["event"]]
+    cancel_buy = [(e == event_types["cancellation buy"]) for e in data_dict["event"]]
 
-    tmp_lo_buy = np.concatenate([data_dict["level"][j][lo_buy[j]] for j in range(num_seq)], axis=0)
+    tmp_lo_buy = np.concatenate(
+        [data_dict["level"][j][lo_buy[j]] for j in range(num_seq)], axis=0
+    )
     rates["lo buy levels"], rates["lo buy"] = np.unique(tmp_lo_buy, return_counts=True)
-    tmp_lo_sell = np.concatenate([data_dict["level"][j][lo_sell[j]] for j in range(num_seq)], axis=0)
-    rates["lo sell levels"], rates["lo sell"] = np.unique(tmp_lo_sell, return_counts=True)
+    tmp_lo_sell = np.concatenate(
+        [data_dict["level"][j][lo_sell[j]] for j in range(num_seq)], axis=0
+    )
+    rates["lo sell levels"], rates["lo sell"] = np.unique(
+        tmp_lo_sell, return_counts=True
+    )
 
     rates["lo buy"] = rates["lo buy"] / total_time
     rates["lo sell"] = rates["lo sell"] / total_time
-    tmp_lo_size = np.concatenate([data_dict["size"][j][lo[j]] for j in range(num_seq)], axis=0)
-    rates["lo size"] = np.log(np.mean(np.abs(tmp_lo_size)) / (np.mean(np.abs(tmp_lo_size)) - 1))
+    tmp_lo_size = np.concatenate(
+        [data_dict["size"][j][lo[j]] for j in range(num_seq)], axis=0
+    )
+    rates["lo size"] = np.log(
+        np.mean(np.abs(tmp_lo_size)) / (np.mean(np.abs(tmp_lo_size)) - 1)
+    )
 
     rates["mo bid"] = np.sum([np.sum(m) for m in mo_bid]) / total_time
     rates["mo ask"] = np.sum([np.sum(m) for m in mo_ask]) / total_time
 
-    tmp_mo_size = np.concatenate([data_dict["size"][j][mo[j]] for j in range(num_seq)], axis=0)
-    rates["mo size"] = np.log(np.mean(np.abs(tmp_mo_size)) / (np.mean(np.abs(tmp_mo_size)) - 1))
+    tmp_mo_size = np.concatenate(
+        [data_dict["size"][j][mo[j]] for j in range(num_seq)], axis=0
+    )
+    rates["mo size"] = np.log(
+        np.mean(np.abs(tmp_mo_size)) / (np.mean(np.abs(tmp_mo_size)) - 1)
+    )
 
-    tmp_cancel_buy = np.concatenate([data_dict["level"][j][cancel_buy[j]] for j in range(num_seq)], axis=0)
-    rates["cancel buy levels"], rates["cancel buy"] = np.unique(tmp_cancel_buy, return_counts=True)
-    tmp_cancel_sell = np.concatenate([data_dict["level"][j][cancel_sell[j]] for j in range(num_seq)], axis=0)
-    rates["cancel sell levels"], rates["cancel sell"] = np.unique(tmp_cancel_sell, return_counts=True)
+    tmp_cancel_buy = np.concatenate(
+        [data_dict["level"][j][cancel_buy[j]] for j in range(num_seq)], axis=0
+    )
+    rates["cancel buy levels"], rates["cancel buy"] = np.unique(
+        tmp_cancel_buy, return_counts=True
+    )
+    tmp_cancel_sell = np.concatenate(
+        [data_dict["level"][j][cancel_sell[j]] for j in range(num_seq)], axis=0
+    )
+    rates["cancel sell levels"], rates["cancel sell"] = np.unique(
+        tmp_cancel_sell, return_counts=True
+    )
 
     # compute maximum likelihood for mo size by considering truncated geometric dist
     s_sum = np.sum(np.abs(tmp_mo_size))
@@ -85,31 +107,75 @@ def estimate_rates_lists(data_dict, event_types):
     for s in range(num_seq):
         for m in range(mo[s].size):
             if mo[s][m]:
-                v[i] = LOB(data_dict["ob"][s][m, :]).ask_volume if mo_ask[s][m] else LOB(
-                    data_dict["ob"][s][m, :]).bid_volume
+                v[i] = (
+                    LOB(data_dict["ob"][s][m, :]).ask_volume
+                    if mo_ask[s][m]
+                    else LOB(data_dict["ob"][s][m, :]).bid_volume
+                )
                 i += 1
     v = np.abs(v)
 
     def ll(p):
-        return num_mo * np.log(p) + (s_sum - num_mo) * np.log(1 - p) - np.sum(np.log(1 - (1 - p) ** v),
-                                                                              axis=-1).reshape((-1, 1))
+        return (
+            num_mo * np.log(p)
+            + (s_sum - num_mo) * np.log(1 - p)
+            - np.sum(np.log(1 - (1 - p) ** v), axis=-1).reshape((-1, 1))
+        )
 
     res = minimize_scalar(lambda p: -ll(p), bounds=[0.1, 0.9], method="bounded")
     rates["mo size"] = -np.log(1 - res.x).flat[0]
 
-    avg_buy = np.sum([np.sum(
-        np.abs(np.apply_along_axis(lambda x: LOB(x.reshape((2, -1))).q_bid(), -1,
-                                   data_dict["ob"][j].reshape((data_dict["ob"][j].shape[0], -1)))) *
-        data_dict["time"][j][..., np.newaxis],
-        axis=0) for j in range(num_seq)], axis=0) / total_time
-    avg_sell = np.sum([np.sum(
-        np.abs(np.apply_along_axis(lambda x: LOB(x.reshape((2, -1))).q_ask(), -1,
-                                   data_dict["ob"][j].reshape((data_dict["ob"][j].shape[0], -1)))) *
-        data_dict["time"][j][..., np.newaxis],
-        axis=0) for j in range(num_seq)], axis=0) / total_time
+    avg_buy = (
+        np.sum(
+            [
+                np.sum(
+                    np.abs(
+                        np.apply_along_axis(
+                            lambda x: LOB(x.reshape((2, -1))).q_bid(),
+                            -1,
+                            data_dict["ob"][j].reshape(
+                                (data_dict["ob"][j].shape[0], -1)
+                            ),
+                        )
+                    )
+                    * data_dict["time"][j][..., np.newaxis],
+                    axis=0,
+                )
+                for j in range(num_seq)
+            ],
+            axis=0,
+        )
+        / total_time
+    )
+    avg_sell = (
+        np.sum(
+            [
+                np.sum(
+                    np.abs(
+                        np.apply_along_axis(
+                            lambda x: LOB(x.reshape((2, -1))).q_ask(),
+                            -1,
+                            data_dict["ob"][j].reshape(
+                                (data_dict["ob"][j].shape[0], -1)
+                            ),
+                        )
+                    )
+                    * data_dict["time"][j][..., np.newaxis],
+                    axis=0,
+                )
+                for j in range(num_seq)
+            ],
+            axis=0,
+        )
+        / total_time
+    )
 
-    rates["cancel buy"] = rates["cancel buy"] / (total_time * avg_buy[rates["cancel buy levels"].astype(int)])
-    rates["cancel sell"] = rates["cancel sell"] / (total_time * avg_sell[rates["cancel sell levels"].astype(int)])
+    rates["cancel buy"] = rates["cancel buy"] / (
+        total_time * avg_buy[rates["cancel buy levels"].astype(int)]
+    )
+    rates["cancel sell"] = rates["cancel sell"] / (
+        total_time * avg_sell[rates["cancel sell levels"].astype(int)]
+    )
 
     return rates
 
@@ -141,21 +207,29 @@ def estimate_frequencies(data_dict, event_types):
     freq = {}
     num_events = data_dict["event"].size
 
-    lo_sell = (data_dict["event"].squeeze() == event_types['lo sell'])
-    lo_buy = (data_dict["event"].squeeze() == event_types['lo buy'])
-    mo_bid = (data_dict["event"].squeeze() == event_types['mo bid'])
-    mo_ask = (data_dict["event"].squeeze() == event_types['mo ask'])
-    cancel_sell = (data_dict["event"].squeeze() == event_types['cancellation sell'])
-    cancel_buy = (data_dict["event"].squeeze() == event_types['cancellation buy'])
+    lo_sell = data_dict["event"].squeeze() == event_types["lo sell"]
+    lo_buy = data_dict["event"].squeeze() == event_types["lo buy"]
+    mo_bid = data_dict["event"].squeeze() == event_types["mo bid"]
+    mo_ask = data_dict["event"].squeeze() == event_types["mo ask"]
+    cancel_sell = data_dict["event"].squeeze() == event_types["cancellation sell"]
+    cancel_buy = data_dict["event"].squeeze() == event_types["cancellation buy"]
 
-    freq["lo buy levels"], freq["lo buy"] = np.unique(data_dict["level"][lo_buy], return_counts=True)
-    freq["lo sell levels"], freq["lo sell"] = np.unique(data_dict["level"][lo_sell], return_counts=True)
+    freq["lo buy levels"], freq["lo buy"] = np.unique(
+        data_dict["level"][lo_buy], return_counts=True
+    )
+    freq["lo sell levels"], freq["lo sell"] = np.unique(
+        data_dict["level"][lo_sell], return_counts=True
+    )
 
     freq["mo bid"] = np.sum(mo_bid)
     freq["mo ask"] = np.sum(mo_ask)
 
-    freq["cancel buy levels"], freq["cancel buy"] = np.unique(data_dict["level"][cancel_buy], return_counts=True)
-    freq["cancel sell levels"], freq["cancel sell"] = np.unique(data_dict["level"][cancel_sell], return_counts=True)
+    freq["cancel buy levels"], freq["cancel buy"] = np.unique(
+        data_dict["level"][cancel_buy], return_counts=True
+    )
+    freq["cancel sell levels"], freq["cancel sell"] = np.unique(
+        data_dict["level"][cancel_sell], return_counts=True
+    )
 
     s = 0
     for k, v in freq.items():
@@ -238,21 +312,30 @@ def lineplot(data_list, fun_list, titles, data_labels, timefactor=1, x_label="Ev
     for i in range(num_fun):
         for j in range(num_data):
             df_list[i][j] = pd.DataFrame(fun_list[i](data_list[j]))
-            df_list[i][j]['index'] = df_list[i][j].index
-            df_list[i][j] = pd.melt(df_list[i][j], id_vars='index', value_name="fun", var_name='point')
-            df_list[i][j]['timepoint'] = df_list[i][j]['point'] / timefactor
+            df_list[i][j]["index"] = df_list[i][j].index
+            df_list[i][j] = pd.melt(
+                df_list[i][j], id_vars="index", value_name="fun", var_name="point"
+            )
+            df_list[i][j]["timepoint"] = df_list[i][j]["point"] / timefactor
 
-    plt.rcParams.update({'font.size': 20})
+    plt.rcParams.update({"font.size": 20})
     fig = plt.figure(figsize=[12, 10])
     ax = [fig.add_subplot("{}1{}".format(num_fun, i + 1)) for i in range(num_fun)]
 
     for i in range(num_fun):
         for j in range(num_data):
-            sns.lineplot(x='timepoint', y='fun', data=df_list[i][j], ci="sd", ax=ax[i], label=data_labels[j])
+            sns.lineplot(
+                x="timepoint",
+                y="fun",
+                data=df_list[i][j],
+                ci="sd",
+                ax=ax[i],
+                label=data_labels[j],
+            )
 
     for t in range(len(titles)):
         ax[t].set_title(titles[t])
-        ax[t].legend(loc='lower left')
+        ax[t].legend(loc="lower left")
         ax[t].set_xlabel(x_label)
         ax[t].set_ylabel("Price")
 
@@ -260,7 +343,9 @@ def lineplot(data_list, fun_list, titles, data_labels, timefactor=1, x_label="Ev
     return fig
 
 
-def plot_order_imbalance(data_list, time_weights, data_labels, num_bins=100, num_regimes=5, depth=None):
+def plot_order_imbalance(
+    data_list, time_weights, data_labels, num_bins=100, num_regimes=5, depth=None
+):
     """
     Plot histogram and transitions between regimes for order imbalance
 
@@ -281,8 +366,14 @@ def plot_order_imbalance(data_list, time_weights, data_labels, num_bins=100, num
     two figures, first with histogram and second with transition probabilities
     """
     num_data = len(data_list)
-    oi = [np.apply_along_axis(lambda x: LOB(x).order_imbalance(depth), -1,
-                              d[:, :-1, ...].reshape((d.shape[0], d.shape[1] - 1, -1))) for d in data_list]
+    oi = [
+        np.apply_along_axis(
+            lambda x: LOB(x).order_imbalance(depth),
+            -1,
+            d[:, :-1, ...].reshape((d.shape[0], d.shape[1] - 1, -1)),
+        )
+        for d in data_list
+    ]
 
     oi_bins = (2 * np.arange(0, num_bins + 1) / num_bins) - 1
 
@@ -290,8 +381,14 @@ def plot_order_imbalance(data_list, time_weights, data_labels, num_bins=100, num
     ax1 = fig1.add_subplot(111)
     for i in range(num_data):
         w = time_weights[i][:, 1:]
-        _, _, _ = ax1.hist(oi[i][np.isfinite(oi[i])], bins=oi_bins, alpha=.5, label=data_labels[i],
-                           weights=w[np.isfinite(oi[i])], density=True)
+        _, _, _ = ax1.hist(
+            oi[i][np.isfinite(oi[i])],
+            bins=oi_bins,
+            alpha=0.5,
+            label=data_labels[i],
+            weights=w[np.isfinite(oi[i])],
+            density=True,
+        )
 
     ax1.set_title("Order Imbalance")
     ax1.legend()
@@ -305,8 +402,13 @@ def plot_order_imbalance(data_list, time_weights, data_labels, num_bins=100, num
 
     for j in range(num_data):
         for i in range(oi_ind[j].shape[0]):
-            df_trans[j].append(pd.crosstab(pd.Series(oi_ind[j][i, 1:], name='Tomorrow'),
-                                           pd.Series(oi_ind[j][i, :-1], name='Today'), normalize=1))
+            df_trans[j].append(
+                pd.crosstab(
+                    pd.Series(oi_ind[j][i, 1:], name="Tomorrow"),
+                    pd.Series(oi_ind[j][i, :-1], name="Today"),
+                    normalize=1,
+                )
+            )
 
         df_oi[j] = pd.concat(df_trans[j]).fillna(0).groupby(level=0).sum()
         df_oi[j] = df_oi[j] / df_oi[j].sum()
@@ -319,10 +421,18 @@ def plot_order_imbalance(data_list, time_weights, data_labels, num_bins=100, num
     fig2 = plt.figure(figsize=(10 * num_data, 10))
     for d in range(num_data):
         ax2 = fig2.add_subplot(1, num_data, d + 1)
-        ax2.matshow(df_oi[d], cmap='seismic')
+        ax2.matshow(df_oi[d], cmap="seismic")
 
         for (i, j), z in np.ndenumerate(df_oi[d]):
-            ax2.text(j, i, '{:0.3f}'.format(z), ha='center', va='center', color='white', size=15)
+            ax2.text(
+                j,
+                i,
+                "{:0.3f}".format(z),
+                ha="center",
+                va="center",
+                color="white",
+                size=15,
+            )
 
         if data_labels[d] == "diff":
             ax2.set_title("Difference")
@@ -332,7 +442,14 @@ def plot_order_imbalance(data_list, time_weights, data_labels, num_bins=100, num
     return fig1, fig2
 
 
-def market_order_signatures(data_dict, event_types, size_limits=None, end_time=10, timefactor=100, abs_size=False):
+def market_order_signatures(
+    data_dict,
+    event_types,
+    size_limits=None,
+    end_time=10,
+    timefactor=100,
+    abs_size=False,
+):
     """
     Estimate price signatures for market orders
 
@@ -354,7 +471,7 @@ def market_order_signatures(data_dict, event_types, size_limits=None, end_time=1
         how many points in time per time unit to use
     abs_size : bool
         whether to use "abs_size" key of data_dict, otherwise "size" is used
-        
+
     Returns
     -------
     ps
@@ -373,12 +490,14 @@ def market_order_signatures(data_dict, event_types, size_limits=None, end_time=1
     ps = {}
 
     def mid_func(d):
-        return np.apply_along_axis(lambda x: LOB(x).mid, -1, d.reshape((d.shape[:-2] + (-1,))))
+        return np.apply_along_axis(
+            lambda x: LOB(x).mid, -1, d.reshape((d.shape[:-2] + (-1,)))
+        )
 
     time_key = "time" if "abs_time" not in data_dict else "abs_time"
 
     for m in ["bid", "ask"]:
-        mo = (data_dict["event"] == event_types['mo {}'.format(m)])
+        mo = data_dict["event"] == event_types["mo {}".format(m)]
         if np.sum(mo) == 0:
             ps[m] = 0
         else:
@@ -388,12 +507,23 @@ def market_order_signatures(data_dict, event_types, size_limits=None, end_time=1
             p0_ind = []
             ob_ind = []
             for i in np.argwhere(mo):
-                if np.sum(data_dict[time_key][i[0], i[1]:]) > end_time:
+                if np.sum(data_dict[time_key][i[0], i[1] :]) > end_time:
                     p0_ind.append(i)
-                    end_index = np.searchsorted(np.cumsum(data_dict[time_key][i[0], i[1]:]), end_time)
-                    ob_ind.append(events_to_times(data_dict["ob"][np.newaxis, i[0], i[1]:i[1] + end_index + 1, ...],
-                                                  data_dict[time_key][np.newaxis, i[0], i[1]:i[1] + end_index + 1],
-                                                  timefactor=timefactor, end_time=end_time).squeeze())
+                    end_index = np.searchsorted(
+                        np.cumsum(data_dict[time_key][i[0], i[1] :]), end_time
+                    )
+                    ob_ind.append(
+                        events_to_times(
+                            data_dict["ob"][
+                                np.newaxis, i[0], i[1] : i[1] + end_index + 1, ...
+                            ],
+                            data_dict[time_key][
+                                np.newaxis, i[0], i[1] : i[1] + end_index + 1
+                            ],
+                            timefactor=timefactor,
+                            end_time=end_time,
+                        ).squeeze()
+                    )
             if len(p0_ind) > 0:
                 ob_ind = np.array(ob_ind)
                 p0_ind = np.array(p0_ind)
@@ -401,7 +531,9 @@ def market_order_signatures(data_dict, event_types, size_limits=None, end_time=1
 
                 p = p[:, np.newaxis, :]
                 p0 = p[..., 0]
-                ps[m] = price_signature(p, p0, sizes[p0_ind[:, 0], p0_ind[:, 1]].reshape((-1, 1)))
+                ps[m] = price_signature(
+                    p, p0, sizes[p0_ind[:, 0], p0_ind[:, 1]].reshape((-1, 1))
+                )
             else:
                 ps[m] = 0
 
