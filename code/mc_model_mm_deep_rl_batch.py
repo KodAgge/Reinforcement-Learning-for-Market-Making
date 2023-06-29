@@ -1,19 +1,14 @@
-from cProfile import label
 import functools
 import dill as pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-from collections import defaultdict, OrderedDict
 import os
-import random
 import time
 from datetime import timedelta
-import pkg_resources
 
 # pkg_resources.require("gym==0.23.0")
-import gym
 import pfrl
 from pfrl.experiments.evaluator import save_agent
 from pfrl.utils.contexts import evaluating
@@ -22,9 +17,8 @@ import torch as th
 from environments.mc_model.mc_environment_deep import *
 import logging
 from tabulate import tabulate
-import threading
-from pprint import pprint
-from types import MethodType
+
+logger = logging.getLogger(__name__)
 
 CENT_TO_DOLLAR = 100
 
@@ -149,8 +143,6 @@ def train_pfrl_agent_batch(
     checkpoint_freq=None,
     step_offset=0,
     step_hooks=(),
-    logger=None,
-    printing=False,
     suffix="",
     threshold=1e6,
     print_freq=5,
@@ -167,8 +159,6 @@ def train_pfrl_agent_batch(
     checkpoint_freq : integer of checkpoint frequency
     step_offset : integer of iteration to start at
     step_hooks : see PFRL documenttion
-    logger : logger object for logging
-    printing : whether or not printing should be done
     suffix : str used at end of files saved
     threshold : float, interrupt training if q-values larger than this threshold
     print_freq : how often remaining time should be printed
@@ -178,8 +168,6 @@ def train_pfrl_agent_batch(
     two arrays with estimated q-values and the corresponding iterations
 
     """
-    logger = logger or logging.getLogger(__name__)
-
     num_envs = env.num_envs
 
     log_interval = info["log_interval"]
@@ -268,21 +256,20 @@ def train_pfrl_agent_batch(
                     # Save the losses
                     loss.append(agent.get_statistics()[1][1])
 
-                    if printing:
-                        smooth_r = 0.97 * smooth_r + 0.03 * avg_episodal_rew
-                        print("\t\tt: ", t)
-                        print("\t\tq: ", q_estimate[-1] / CENT_TO_DOLLAR)
-                        print("\t\tr: ", r_estimate[-1] / CENT_TO_DOLLAR)
-                        print(
-                            "\t\tl: ",
-                            loss[-1] / (info["reward_scale"] ** 2) / CENT_TO_DOLLAR,
-                        )
-                        print("\t\tsmooth r: ", smooth_r / CENT_TO_DOLLAR)
-                        print("\t\t" + "-" * 24)
+                    smooth_r = 0.97 * smooth_r + 0.03 * avg_episodal_rew
+                    logger.debug("- t: %d", t)
+                    logger.debug("- q: %d", q_estimate[-1] / CENT_TO_DOLLAR)
+                    logger.debug("- r: %d", r_estimate[-1] / CENT_TO_DOLLAR)
+                    logger.debug(
+                        "- l: %d",
+                        loss[-1] / (info["reward_scale"] ** 2) / CENT_TO_DOLLAR,
+                    )
+                    logger.debug("- smooth r: %d", smooth_r / CENT_TO_DOLLAR)
+                    logger.debug("-" * 24)
 
                     t_diff = 0
                     if q_estimate[-1] > threshold:
-                        print("Q ESTIMATES TOO HIGH, INTERRUPTING TRAINING")
+                        logger.warning("Q estimates too high, interrupting training.")
                         return t_estimate, q_estimate
                 t += 1
 
@@ -298,23 +285,17 @@ def train_pfrl_agent_batch(
 
                 percentage = "{:.0%}".format(t / steps)
 
-                time_remaining = str(
-                    timedelta(
-                        seconds=round(
-                            (end_time_sub - start_time_sub)
-                            * (steps - t)
-                            / print_frequency,
-                            2,
-                        )
+                time_remaining = timedelta(
+                    seconds=round(
+                        (end_time_sub - start_time_sub)
+                        * (steps - t)
+                        / print_frequency,
+                        2,
                     )
                 )
 
-                print(
-                    "\tStep",
-                    t,
-                    "(" + percentage + "),",
-                    time_remaining,
-                    "remaining of this run",
+                logger.info(
+                    "- Step %d (%s), %s remaining of the run.", t, percentage, time_remaining
                 )
 
                 start_time_sub = time.time()
@@ -326,11 +307,11 @@ def train_pfrl_agent_batch(
 
     except (Exception, KeyboardInterrupt):
         # Save the current model before being killed
-        save_agent(agent, t, outdir, logger, suffix="_except" + suffix)
+        save_agent(agent, t, outdir, logger, suffix=f"_except{suffix}")
         raise
 
     # Save the final model
-    save_agent(agent, t, outdir, logger, suffix="_finish" + suffix)
+    save_agent(agent, t, outdir, logger, suffix=f"_finish{suffix}")
 
     return t_estimate, q_estimate, r_estimate, loss
 
@@ -374,7 +355,7 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
     try:
         os.makedirs(folder_name)
     except:
-        print("THE FOLDER", folder_name, "ALREADY EXISTS")
+        logger.info("The folder %s already exists.", folder_name)
 
     save_parameters(args, info, outdir)
 
@@ -386,10 +367,10 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
     suffixes = np.arange(n_runs) + 1
 
     for suffix in suffixes:
-        print("RUN", suffix, "IN PROGRESS...")
+        logger.info("Run %d in progress.", suffix)
         start_time_sub = time.time()
 
-        suffix_ = "_" + str(suffix)
+        suffix_ = f"_{suffix}"
 
         # Create environment
         env_function = get_env_function()
@@ -400,7 +381,7 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
         agent = setup_ddqn_agent(vec_env, info, gpu)
 
         # Where the model will be stored
-        model_name = outdir + "model_folder/" + str(n) + "_finish" + suffix_
+        model_name = f"{outdir}model_folder/{n}_finish{suffix_}"
 
         # Train the agent
         t_estimate, q_estimate, r_estimate, loss = train_pfrl_agent_batch(
@@ -408,14 +389,13 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
             vec_env,
             sample_env,
             info,
-            outdir + "model_folder/",
-            printing=False,
+            f"{outdir}model_folder/",
             suffix=suffix_,
         )
         vec_env.close()
 
         # The name of the estimate file
-        estimate_name = folder_name + "/estimate" + suffix_
+        estimate_name = f"{folder_name}/estimate{suffix_}"
 
         file = open(estimate_name, "wb")
 
@@ -427,21 +407,17 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
         estimate_names.append(estimate_name)
 
         # Calculate run time for the single run
-        run_time = str(timedelta(seconds=round(time.time() - start_time_sub, 2)))
-        print("...FINISHED IN", run_time)
+        run_time = timedelta(seconds=round(time.time() - start_time_sub, 2))
+        logger.info("Finished in %s.", run_time)
 
         # Calculate the remaining time
         if suffix < len(suffixes):
-            remaining_time = str(
-                timedelta(
-                    seconds=round(
-                        (len(suffixes) - suffix) * (time.time() - start_time_sub), 2
-                    )
+            remaining_time = timedelta(
+                seconds=round(
+                    (len(suffixes) - suffix) * (time.time() - start_time_sub), 2
                 )
             )
-            print(remaining_time, "REMAINING OF THE TRAINING")
-
-        print("=" * 40)
+            logger.info("%s remaining of the training.", remaining_time)
 
     save_file_names(model_names, estimate_names, outdir)
 
@@ -470,7 +446,7 @@ def load_agent(agent, folder_name):
         the loaded object instance
 
     """
-    agent.load(os.getcwd() + "/" + folder_name)
+    agent.load(f"{os.getcwd()}/{folder_name}")
 
     return agent
 
@@ -512,16 +488,16 @@ def save_parameters(model_parameters, training_parameters, folder_name):
     None
 
     """
-    file_path = folder_name + "/parameters.txt"
+    file_path = f"{folder_name}/parameters.txt"
 
     with open(file_path, "w") as f:
         f.write("MODEL PARAMETERS\n")
         for key in list(model_parameters.keys()):
-            f.write(str(key) + " : " + str(model_parameters[key]) + "\n")
+            f.write(f"{key} : {model_parameters[key]}\n")
 
         f.write("\nTRAINING PARAMETERS\n")
         for key in list(training_parameters.keys()):
-            f.write(str(key) + " : " + str(training_parameters[key]) + "\n")
+            f.write(f"{key} : {training_parameters[key]}\n")
 
 
 def save_file_names(model_names, estimate_names, outdir):
@@ -543,7 +519,7 @@ def save_file_names(model_names, estimate_names, outdir):
         the dir of where the file is saved
     """
     # Create the file
-    file_name = outdir + "file_names.pkl"
+    file_name = f"{outdir}file_names.pkl"
 
     file = open(file_name, "wb")
 
@@ -570,7 +546,7 @@ def load_file_names(outdir):
     estimate_names : list
         a list with the dir of the estimates
     """
-    file_name = outdir + "file_names.pkl"
+    file_name = f"{outdir}file_names.pkl"
 
     file = open(file_name, "rb")
 
@@ -598,7 +574,7 @@ def save_arguments(args, info, outdir):
         the dir of where the file is saved
     """
     # Create the file
-    file_name = outdir + "arguments.pkl"
+    file_name = f"{outdir}arguments.pkl"
 
     file = open(file_name, "wb")
 
@@ -627,7 +603,7 @@ def load_arguments(outdir):
 
 
     """
-    file_name = outdir + "arguments.pkl"
+    file_name = f"{outdir}arguments.pkl"
 
     file = open(file_name, "rb")
 
@@ -676,11 +652,11 @@ def evaluate_DDQN_batch(outdir, n_test=10, c=1, Q=3, gpu=-1, randomize_start=Fal
     """
 
     # CREATE FOLDER WHERE IMAGES ARE SAVED
-    image_folder_name = outdir + "image_folder"
+    image_folder_name = f"{outdir}image_folder"
     try:
         os.makedirs(image_folder_name)
     except:
-        print("THE FOLDER", image_folder_name, "ALREADY EXISTS")
+        logger.info("The folder %s already exists.", image_folder_name)
 
     # FETCH NEEDED INFO
     model_names, estimate_names = load_file_names(outdir)
@@ -696,15 +672,14 @@ def evaluate_DDQN_batch(outdir, n_test=10, c=1, Q=3, gpu=-1, randomize_start=Fal
         agents.append(load_agent(setup_ddqn_agent(vec_env, info, gpu), model_name))
 
     # CREATE GRAPH WITH REWARD AND Q ESTIMATES
-    print("PLOTTING TRAINING...")
+    logger.info("Plotting training.")
     plot_training_r_q_l(estimate_names, info, folder_name=image_folder_name)
 
     # # CREATE HEATMAPS OF STRATEGIES
-    print("PLOTTING STRATEGIES...")
+    logger.info("Plotting strategies.")
     show_strategies_batch(
         agents,
         vec_env,
-        info,
         args,
         info["n_states"],
         folder_name=image_folder_name,
@@ -713,7 +688,7 @@ def evaluate_DDQN_batch(outdir, n_test=10, c=1, Q=3, gpu=-1, randomize_start=Fal
 
     # EVALUATE THE DIFFERENT RUNS
     if len(model_names) > 1:
-        print("EVALUATING AGENTS...")
+        logger.info("Evaluating agents.")
         mean_r = evaluate_multiple_agents_batch(
             args, vec_env, agents, n_test, folder_name=image_folder_name
         )
@@ -726,23 +701,21 @@ def evaluate_DDQN_batch(outdir, n_test=10, c=1, Q=3, gpu=-1, randomize_start=Fal
         plot_stability(agents, vec_env, args, info, Q=Q, folder_name=image_folder_name)
 
     # EVALUATE AGAINST BENCHMARKS
-    print("EVALUATING BENCHMARKS...")
+    logger.info("Evaluating benchmarks...")
     evaluate_benchmark_strategies_batch(
         args,
-        info,
         vec_env,
         agents,
         best_idx,
         n_test,
         folder_name=image_folder_name,
         c=c,
-        gpu=gpu,
     )
 
     vec_env.close()
 
     # VISUALIZE THE STRATEGIES
-    print("VISUALIZING THE STRATEGIES...")
+    logger.info("Visualizing the strategies.")
     visualize_strategies(
         outdir, n_test=n_test, randomize_start=randomize_start, save_mode=True
     )
@@ -985,7 +958,7 @@ def show_action_grid(bid_1, ask_1, bid_2, ask_2, t, q, save_mode, folder_name):
     df_ask_2.index = q
 
     # Subplots
-    fig, ((ax1, ax2, cb1), (ax3, ax4, cb2)) = plt.subplots(
+    _, ((ax1, ax2, cb1), (ax3, ax4, cb2)) = plt.subplots(
         2, 3, figsize=(15, 14), gridspec_kw={"width_ratios": [1, 1, 0.08]}
     )
 
@@ -1010,7 +983,7 @@ def show_action_grid(bid_1, ask_1, bid_2, ask_2, t, q, save_mode, folder_name):
     g4.set_xlabel("time")
 
     if save_mode:
-        plt.savefig(folder_name + "/scenario")
+        plt.savefig(f"{folder_name}/scenario")
         plt.close()
     else:
         plt.show()
@@ -1049,7 +1022,7 @@ def show_action_diff(bid_diff, ask_diff, t, q, save_mode, folder_name):
     df_ask_1.index = q
 
     # Subplots
-    fig, ((ax1, ax2, cb1)) = plt.subplots(
+    _, ((ax1, ax2, cb1)) = plt.subplots(
         1, 3, figsize=(15, 7), gridspec_kw={"width_ratios": [1, 1, 0.08]}
     )
 
@@ -1064,7 +1037,7 @@ def show_action_diff(bid_diff, ask_diff, t, q, save_mode, folder_name):
     g2.set_xlabel("time")
 
     if save_mode:
-        plt.savefig(folder_name + "/scenario")
+        plt.savefig(f"{folder_name}/scenario")
         plt.close()
     else:
         plt.show()
@@ -1072,7 +1045,6 @@ def show_action_diff(bid_diff, ask_diff, t, q, save_mode, folder_name):
 
 def evaluate_benchmark_strategies_batch(
     args,
-    info,
     env,
     agents,
     best_idx,
@@ -1080,7 +1052,6 @@ def evaluate_benchmark_strategies_batch(
     folder_name=None,
     save_mode=True,
     c=1,
-    gpu=-1,
 ):
     """
     Evaluates the best of the previously trained agents and compares against a constant and random strategy.
@@ -1090,8 +1061,6 @@ def evaluate_benchmark_strategies_batch(
     ----------
     args : dict
         a dictionary with the parameters of the environment
-    info : dict
-        a dictionary with values used for the DDQN agent
     model_name : str
         a string of where the best agent is saved
     n_test : int
@@ -1102,8 +1071,6 @@ def evaluate_benchmark_strategies_batch(
         whether or not the images should be saved or shown
     c : int
         the depth of the constant strategy
-    gpu : int
-        the gpu id (negative = cpu, positive = gpu if exists)
 
     Returns
     -------
@@ -1111,19 +1078,19 @@ def evaluate_benchmark_strategies_batch(
 
     """
     # Evaluate the best agent
-    print("\tbest agent")
+    logger.info("...best agent")
     r_DDQN = compute_reward_agent_batch(
         agents[best_idx], env, n_test, args["T"] / args["dt"]
     ).reshape(-1)
 
     # Evaluate the mean agent
-    print("\tmean agent")
+    logger.info("...mean agent")
     r_DDQN_mean = compute_reward_mean_agent_batch(
         agents, env, num_episodes=n_test, num_steps=args["T"] / args["dt"]
     ).reshape(-1)
 
     # Evaluate constant strategy
-    print("\tconstant strategy")
+    logger.info("...constant strategy")
     r_constant = compute_reward_benchmark_batch(
         env,
         num_episodes=n_test,
@@ -1133,7 +1100,7 @@ def evaluate_benchmark_strategies_batch(
     ).reshape(-1)
 
     # Evalute random strategy
-    print("\trandom_strategy")
+    logger.info("...random_strategy")
     r_random = compute_reward_benchmark_batch(
         env, num_episodes=n_test, num_steps=args["T"] / args["dt"], strategy="random"
     ).reshape(-1)
@@ -1169,10 +1136,10 @@ def evaluate_benchmark_strategies_batch(
 
     # Save or show the table
     if save_mode:
-        with open(folder_name + "/" "table_benchmarking", "w") as f:
+        with open(f"{folder_name}/table_benchmarking", "w") as f:
             f.write(tabulate(rows, headers=headers))
     else:
-        print("Results:\n")
+        logger.info("Results:")
         print(tabulate(rows, headers=headers))
 
     # Save or show the boxplot
@@ -1182,7 +1149,7 @@ def evaluate_benchmark_strategies_batch(
     plt.ylabel("reward")
 
     if save_mode:
-        plt.savefig(folder_name + "/" "box_plot_benchmarking")
+        plt.savefig(f"{folder_name}/box_plot_benchmarking")
         plt.close()
     else:
         plt.show()
@@ -1283,7 +1250,7 @@ def evaluate_multiple_agents_batch(
             )
 
     # Setup the table
-    labels = ["run " + str(i + 1) for i in range(len(agents))]
+    labels = [f"run {i+1}" for i in range(len(agents))]
 
     headers = [
         "run",
@@ -1309,12 +1276,11 @@ def evaluate_multiple_agents_batch(
 
     # Save or show the table
     if save_mode:
-        with open(folder_name + "/" "table_different_runs", "w") as f:
+        with open(f"{folder_name}/table_different_runs", "w") as f:
             f.write(tabulate(rows, headers=headers))
     else:
-        print("Results:\n")
+        logger.info("Results:")
         print(tabulate(rows, headers=headers))
-        print()
 
     # Save or show the boxplot
     plt.figure(figsize=(12, 5))
@@ -1323,7 +1289,7 @@ def evaluate_multiple_agents_batch(
     plt.ylabel("reward")
 
     if save_mode:
-        plt.savefig(folder_name + "/box_plot_different_runs")
+        plt.savefig(f"{folder_name}/box_plot_different_runs")
         plt.close()
     else:
         plt.show()
@@ -1568,12 +1534,12 @@ def show_opt_action(
     plt.figure()
 
     fig = sns.heatmap(df_bid, vmin=1, vmax=5)  # HARD CODED
-    fig.set_title("Optimal bid depth (" + suffix + ")")
+    fig.set_title(f"Optimal bid depth ({suffix})")
     fig.set_xlabel("t")
     fig.set_ylabel("inventory")
 
     if save_mode:
-        plt.savefig(folder_name + "/bid_heat_" + suffix)
+        plt.savefig(f"{folder_name}/bid_heat_{suffix}")
         plt.close()
     else:
         plt.show()
@@ -1586,19 +1552,19 @@ def show_opt_action(
     plt.figure()
 
     fig = sns.heatmap(df_ask, vmin=1, vmax=5)  # HARD CODED
-    fig.set_title("Optimal ask depth (" + suffix + ")")
+    fig.set_title(f"Optimal ask depth ({suffix})")
     fig.set_xlabel("t")
     fig.set_ylabel("inventory")
 
     if save_mode:
-        plt.savefig(folder_name + "/ask_heat_" + suffix)
+        plt.savefig(f"{folder_name}/ask_heat_{suffix}")
         plt.close()
     else:
         plt.show()
 
 
 def show_strategies_batch(
-    agents, env, info, args, n_states=None, Q=3, folder_name=None, save_mode=True
+    agents, env, args, n_states=None, Q=3, folder_name=None, save_mode=True
 ):
     """
     Shows the optimal depths in heatmap form for different states
@@ -1609,8 +1575,6 @@ def show_strategies_batch(
         a list of agents
     env : object
         an instance of the environment class
-    info : dict
-        a dict containing parameters
     args : dict
         a dict containing parameters
     n_states : int or None
@@ -1633,8 +1597,8 @@ def show_strategies_batch(
         statess = [env.reset()]
         suffix = "neutral"
     else:
-        statess = [env.reset() for i in range(n_states)]
-        suffix = "randomized_" + str(n_states)
+        statess = [env.reset() for _ in range(n_states)]
+        suffix = f"randomized_{n_states}"
 
     actions_bid, actions_ask, t_s, q_s = get_opt_action_matrix(statess, Q, args, agents)
 
@@ -1671,7 +1635,7 @@ def plot_training_r_q_l(estimate_names, info, folder_name=None, save_mode=True):
     r_estimates = []
     l_estimates = []
 
-    for i, estimate_name in enumerate(estimate_names):
+    for estimate_name in estimate_names:
         t, q, r, l = load_estimate(estimate_name)
 
         q_estimates.append(q)
@@ -1748,7 +1712,7 @@ def plot_training_r_q_l(estimate_names, info, folder_name=None, save_mode=True):
     ax3.legend()
 
     if save_mode:
-        plt.savefig(folder_name + "/training_graph")
+        plt.savefig(f"{folder_name}/training_graph")
         plt.close()
     else:
         plt.show()
@@ -1774,11 +1738,11 @@ def visualize_strategies(
     """
 
     # CREATE FOLDER WHERE IMAGES ARE SAVED
-    image_folder_name = outdir + "image_folder"
+    image_folder_name = f"{outdir}image_folder"
     try:
         os.makedirs(image_folder_name)
     except:
-        print("THE FOLDER", image_folder_name, "ALREADY EXISTS")
+        logger.info("The folder %s already exists.", image_folder_name)
 
     # FETCH NEEDED INFO
     model_names, _ = load_file_names(outdir)
@@ -1797,7 +1761,7 @@ def visualize_strategies(
     # PLOT THE MEAN STRATEGY WITH CI
     Qs, Xs, Vs = sample_strategies_mean(agents, env_function, args, info, n_test)
 
-    fig_mean, (q_axis, x_axis, v_axis) = plt.subplots(1, 3, figsize=(21, 7))
+    _, (q_axis, x_axis, v_axis) = plt.subplots(1, 3, figsize=(21, 7))
 
     q_axis.set_title("The inventory process - $Q_t$")
     x_axis.set_title("The cash process - $X_t$")
@@ -1861,14 +1825,14 @@ def visualize_strategies(
     v_axis.legend()
 
     if save_mode:
-        plt.savefig(image_folder_name + "/visualization_mean")
+        plt.savefig(f"{image_folder_name}/visualization_mean")
         plt.close()
     else:
         plt.show()
 
     # PLOT ALL STRATEGIES
     plt.figure()
-    fig_all, (q_axis, x_axis, v_axis) = plt.subplots(1, 3, figsize=(21, 7))
+    _, (q_axis, x_axis, v_axis) = plt.subplots(1, 3, figsize=(21, 7))
 
     for i, agent in enumerate(agents):
         Qs, Xs, Vs = sample_strategies(agent, env_function, args, info, n_test)
@@ -1877,9 +1841,9 @@ def visualize_strategies(
         x_mean = np.mean(Xs, axis=0) / CENT_TO_DOLLAR
         v_mean = np.mean(Vs, axis=0) / CENT_TO_DOLLAR
 
-        q_axis.plot(q_mean, label="run " + str(i + 1))
-        x_axis.plot(x_mean, label="run " + str(i + 1))
-        v_axis.plot(v_mean, label="run " + str(i + 1))
+        q_axis.plot(q_mean, label=f"run {i + 1}")
+        x_axis.plot(x_mean, label=f"run {i + 1}")
+        v_axis.plot(v_mean, label=f"run {i + 1}")
 
     q_axis.set_title("The inventory process - $Q_t$")
     x_axis.set_title("The cash process - $X_t$")
@@ -1909,7 +1873,7 @@ def visualize_strategies(
     v_axis.legend()
 
     if save_mode:
-        plt.savefig(image_folder_name + "/visualization_all")
+        plt.savefig(f"{image_folder_name}/visualization_all")
         plt.close()
     else:
         plt.show()
@@ -1950,7 +1914,7 @@ def plot_stability(
     mean_unique_matrix = mean_std_matrix.copy()
     mean_error_matrix = mean_std_matrix.copy()
 
-    suffix = "_" + str(int(n_resets * info["num_envs"]))
+    suffix = f"_{int(n_resets * info['num_envs'])}"
 
     q_s = np.arange(-Q, Q + 1)
     t_s = np.arange(int(args["T"] / args["dt"] + 1)) * args["dt"]
@@ -1998,7 +1962,7 @@ def plot_stability(
     fig_std.set_xlabel("time (t)")
 
     if save_mode:
-        plt.savefig(folder_name + "/heatmap_standard_deviation" + suffix)
+        plt.savefig(f"{folder_name}/heatmap_standard_deviation{suffix}")
         plt.close()
     else:
         plt.show()
@@ -2011,7 +1975,7 @@ def plot_stability(
     fig_unique.set_xlabel("time (t)")
 
     if save_mode:
-        plt.savefig(folder_name + "/heatmap_n_unique_actions" + suffix)
+        plt.savefig(f"{folder_name}/heatmap_n_unique_actions{suffix}")
         plt.close()
     else:
         plt.show()
@@ -2024,7 +1988,7 @@ def plot_stability(
     fig_errors.set_xlabel("time (t)")
 
     if save_mode:
-        plt.savefig(folder_name + "/heatmap_n_errors" + suffix)
+        plt.savefig(f"{folder_name}/heatmap_n_errors{suffix}")
         plt.close()
     else:
         plt.show()
@@ -2160,7 +2124,7 @@ def setup_batch_env(args, env_function, num_envs=1, seed=0):
         return env
 
     vec_env = pfrl.envs.MultiprocessVectorEnv(
-        [functools.partial(make_env, idx) for idx, env in enumerate(range(num_envs))]
+        [functools.partial(make_env, idx) for idx in range(num_envs)]
     )
 
     return vec_env
