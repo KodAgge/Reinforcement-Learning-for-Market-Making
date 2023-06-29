@@ -9,8 +9,9 @@ The code in this file was written by Hanna Hultin.
 
 
 class MarkovChainLobModel:
-
-    def __init__(self, num_levels, rates=None, ob_start=None, include_spread_levels=True):
+    def __init__(
+        self, num_levels, rates=None, ob_start=None, include_spread_levels=True
+    ):
         """
         Parameters
         ----------
@@ -29,14 +30,20 @@ class MarkovChainLobModel:
         """
 
         self.num_levels = num_levels
-        self.event_types = {'lo buy': 0, 'lo sell': 1, 'mo bid': 2, 'mo ask': 3, 'cancellation buy': 4,
-                            'cancellation sell': 5}
+        self.event_types = {
+            "lo buy": 0,
+            "lo sell": 1,
+            "mo bid": 2,
+            "mo ask": 3,
+            "cancellation buy": 4,
+            "cancellation sell": 5,
+        }
         self.inverse_event_types = {v: k for k, v in self.event_types.items()}
 
         self.next_event = None
 
-        self.order_volumes = {'bid': 0, 'ask': 0}
-        self.order_prices = {'bid': None, 'ask': None}
+        self.order_volumes = {"bid": 0, "ask": 0}
+        self.order_prices = {"bid": None, "ask": None}
 
         if rates is None:
             self.rates = self.all_rates()
@@ -44,13 +51,17 @@ class MarkovChainLobModel:
             self.rates = rates
 
         if ob_start is None:
-            self.ob = LOB(np.zeros((2, self.num_levels + 1), dtype=int), include_spread_levels=include_spread_levels)
+            self.ob = LOB(
+                np.zeros((2, self.num_levels + 1), dtype=int),
+                include_spread_levels=include_spread_levels,
+            )
         else:
-            self.ob = LOB(ob_start.astype(int), include_spread_levels=include_spread_levels)
+            self.ob = LOB(
+                ob_start.astype(int), include_spread_levels=include_spread_levels
+            )
 
         self.current_rates = self.update_current_rates()
         return
-
 
     @staticmethod
     def geom_dist_probs(alpha, k=10):
@@ -70,7 +81,6 @@ class MarkovChainLobModel:
         """
         return (np.exp(alpha) - 1) * np.exp(-alpha * np.arange(1, k + 1))
 
-
     def all_rates(self):
         """
         Compute all rates of the different processes.
@@ -80,28 +90,42 @@ class MarkovChainLobModel:
         rates : dict
             all rates
         """
-        rates = {"mo bid": .0467}
+        rates = {"mo bid": 0.0467}
         rates["mo ask"] = rates["mo bid"]
 
-        lo_rates = (np.array([.1330, .1811, .2085, .1477, .0541]) + np.array([.1442, .1734, .2404, .1391, .0584])) / 2
+        lo_rates = (
+            np.array([0.1330, 0.1811, 0.2085, 0.1477, 0.0541])
+            + np.array([0.1442, 0.1734, 0.2404, 0.1391, 0.0584])
+        ) / 2
         # lo_rates = [.1330, .1811, .2085, .1477, .0541]
         rates["lo buy"] = np.zeros(self.num_levels)
-        rates["lo buy"][:min(len(lo_rates), self.num_levels)] = lo_rates[:self.num_levels]
+        rates["lo buy"][: min(len(lo_rates), self.num_levels)] = lo_rates[
+            : self.num_levels
+        ]
 
         # lo_rates = [.1442, .1734, .2404, .1391, .0584]
         rates["lo sell"] = np.zeros(self.num_levels)
-        rates["lo sell"][:min(len(lo_rates), self.num_levels)] = lo_rates[:self.num_levels]
+        rates["lo sell"][: min(len(lo_rates), self.num_levels)] = lo_rates[
+            : self.num_levels
+        ]
 
         rates["cancellation buy"] = np.zeros(self.num_levels)
-        canc_rates = (np.array([.1287, .1057, .0541, .0493, .0408]) + np.array([.1308, .1154, .0531, .0492, .0437])) / 2
+        canc_rates = (
+            np.array([0.1287, 0.1057, 0.0541, 0.0493, 0.0408])
+            + np.array([0.1308, 0.1154, 0.0531, 0.0492, 0.0437])
+        ) / 2
         # canc_rates = [.1287, .1057, .0541, .0493, .0408]
-        rates["cancellation buy"][:min(len(canc_rates), self.num_levels)] = canc_rates[:self.num_levels]
+        rates["cancellation buy"][: min(len(canc_rates), self.num_levels)] = canc_rates[
+            : self.num_levels
+        ]
         rates["cancellation sell"] = np.zeros(self.num_levels)
         # canc_rates = [.1308, .1154, .0531, .0492, .0437]
-        rates["cancellation sell"][:min(len(canc_rates), self.num_levels)] = canc_rates[:self.num_levels]
+        rates["cancellation sell"][
+            : min(len(canc_rates), self.num_levels)
+        ] = canc_rates[: self.num_levels]
 
-        rates["lo size"] = .5667
-        rates["mo size"] = .4955
+        rates["lo size"] = 0.5667
+        rates["mo size"] = 0.4955
 
         rates["lo probs"] = self.geom_dist_probs(rates["lo size"], k=self.num_levels)
         rates["mo probs"] = self.geom_dist_probs(rates["mo size"], k=self.num_levels)
@@ -110,7 +134,6 @@ class MarkovChainLobModel:
             for s in ["lo buy", "lo sell", "cancellation buy", "cancellation sell"]:
                 rates["{} {}".format(s, i)] = rates[s][i]
         return rates
-
 
     def update_current_rates(self):
         """
@@ -128,17 +151,24 @@ class MarkovChainLobModel:
             self.current_rates["mo bid"] = self.rates["mo bid"]
 
         for i in range(self.num_levels):
-            self.current_rates["lo buy {}".format(i)] = self.rates["lo buy {}".format(i)]
-            self.current_rates["lo sell {}".format(i)] = self.rates["lo sell {}".format(i)]
+            self.current_rates["lo buy {}".format(i)] = self.rates[
+                "lo buy {}".format(i)
+            ]
+            self.current_rates["lo sell {}".format(i)] = self.rates[
+                "lo sell {}".format(i)
+            ]
 
             if self.ob.get_volume(-i - 1) != 0:
-                self.current_rates["cancellation buy {}".format(i)] = np.abs(self.ob.get_volume(-i - 1)) * self.rates[
-                    "cancellation buy {}".format(i)]
+                self.current_rates["cancellation buy {}".format(i)] = (
+                    np.abs(self.ob.get_volume(-i - 1))
+                    * self.rates["cancellation buy {}".format(i)]
+                )
             if self.ob.get_volume(self.ob.relative_bid + i + 1) != 0:
-                self.current_rates["cancellation sell {}".format(i)] = np.abs(
-                    self.ob.get_volume(self.ob.relative_bid + i + 1)) * self.rates["cancellation sell {}".format(i)]
+                self.current_rates["cancellation sell {}".format(i)] = (
+                    np.abs(self.ob.get_volume(self.ob.relative_bid + i + 1))
+                    * self.rates["cancellation sell {}".format(i)]
+                )
         return self.current_rates
-
 
     def update_current_rates_new(self):
         """
@@ -156,26 +186,44 @@ class MarkovChainLobModel:
             self.current_rates["mo bid"] = self.rates["mo bid"]
 
         for i in range(self.num_levels):
-            self.current_rates["lo buy {}".format(i)] = self.rates["lo buy {}".format(i)]
-            self.current_rates["lo sell {}".format(i)] = self.rates["lo sell {}".format(i)]
+            self.current_rates["lo buy {}".format(i)] = self.rates[
+                "lo buy {}".format(i)
+            ]
+            self.current_rates["lo sell {}".format(i)] = self.rates[
+                "lo sell {}".format(i)
+            ]
 
             if self.ob.get_volume(-i - 1) != 0:
-                if self.ob.bid_n(i, absolute_level=True) == self.order_prices['bid']:
+                if self.ob.bid_n(i, absolute_level=True) == self.order_prices["bid"]:
                     # volume on the mm's level that is not the market maker's
-                    other_vol_on_level = np.abs(self.ob.get_volume(-i - 1)) - self.order_volumes['bid']
-                    self.current_rates["cancellation buy {}".format(i)] = other_vol_on_level * self.rates["cancellation buy {}".format(i)]
+                    other_vol_on_level = (
+                        np.abs(self.ob.get_volume(-i - 1)) - self.order_volumes["bid"]
+                    )
+                    self.current_rates["cancellation buy {}".format(i)] = (
+                        other_vol_on_level * self.rates["cancellation buy {}".format(i)]
+                    )
                 else:
-                    self.current_rates["cancellation buy {}".format(i)] = np.abs(self.ob.get_volume(-i - 1)) * self.rates["cancellation buy {}".format(i)]
+                    self.current_rates["cancellation buy {}".format(i)] = (
+                        np.abs(self.ob.get_volume(-i - 1))
+                        * self.rates["cancellation buy {}".format(i)]
+                    )
 
             if self.ob.get_volume(self.ob.relative_bid + i + 1) != 0:
-                if self.ob.ask_n(i, absolute_level=True) == self.order_prices['ask']:
-                    other_vol_on_level = np.abs(self.ob.get_volume(self.ob.relative_bid + i + 1)) - self.order_volumes['ask']
-                    self.current_rates["cancellation sell {}".format(i)] = other_vol_on_level * self.rates["cancellation sell {}".format(i)]
+                if self.ob.ask_n(i, absolute_level=True) == self.order_prices["ask"]:
+                    other_vol_on_level = (
+                        np.abs(self.ob.get_volume(self.ob.relative_bid + i + 1))
+                        - self.order_volumes["ask"]
+                    )
+                    self.current_rates["cancellation sell {}".format(i)] = (
+                        other_vol_on_level
+                        * self.rates["cancellation sell {}".format(i)]
+                    )
                 else:
-                    self.current_rates["cancellation sell {}".format(i)] = np.abs(
-                        self.ob.get_volume(self.ob.relative_bid + i + 1)) * self.rates["cancellation sell {}".format(i)]
+                    self.current_rates["cancellation sell {}".format(i)] = (
+                        np.abs(self.ob.get_volume(self.ob.relative_bid + i + 1))
+                        * self.rates["cancellation sell {}".format(i)]
+                    )
         return self.current_rates
-
 
     def sample_next_event(self):
         """
@@ -187,12 +235,15 @@ class MarkovChainLobModel:
         """
         self.next_event = {}
         self.update_current_rates_new()
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide="ignore"):
             ts = np.random.exponential(1 / np.array(list(self.current_rates.values())))
         ri = np.argmin(ts)
         self.next_event["time"] = ts[ri]
         k = list(self.current_rates.keys())[ri]
-        for ke, ve, in self.event_types.items():
+        for (
+            ke,
+            ve,
+        ) in self.event_types.items():
             if k.startswith(ke):
                 self.next_event["event"] = ve
         self.next_event["size"] = 1
@@ -207,28 +258,42 @@ class MarkovChainLobModel:
                 print(self.current_rates)
             self.next_event["size"] = self.mo_size(self.rates["mo size"], ob_volume)
 
-            if k == "mo bid" and self.next_event["abs_level"] == self.order_prices['bid']:
-                self.order_volumes['bid'] -= np.min([self.next_event["size"], self.order_volumes['bid']])
-            elif k == "mo ask" and self.next_event["abs_level"] == self.order_prices['ask']:
-                self.order_volumes['ask'] -= np.min([self.next_event["size"], self.order_volumes['ask']])
+            if (
+                k == "mo bid"
+                and self.next_event["abs_level"] == self.order_prices["bid"]
+            ):
+                self.order_volumes["bid"] -= np.min(
+                    [self.next_event["size"], self.order_volumes["bid"]]
+                )
+            elif (
+                k == "mo ask"
+                and self.next_event["abs_level"] == self.order_prices["ask"]
+            ):
+                self.order_volumes["ask"] -= np.min(
+                    [self.next_event["size"], self.order_volumes["ask"]]
+                )
 
         elif k.startswith("lo"):
-            i = int(k.rpartition(' ')[-1])
+            i = int(k.rpartition(" ")[-1])
             self.next_event["level"] = i
-            self.next_event["size"] = np.random.geometric(p=1 - np.exp(-self.rates["lo size"]))
+            self.next_event["size"] = np.random.geometric(
+                p=1 - np.exp(-self.rates["lo size"])
+            )
 
             if k.startswith("lo buy"):
                 self.next_event["abs_level"] = self.ob.ask - i - 1
             else:
                 self.next_event["abs_level"] = self.ob.bid + i + 1
         else:
-            i = int(k.rpartition(' ')[-1])
+            i = int(k.rpartition(" ")[-1])
             self.next_event["level"] = i
-            self.next_event["abs_level"] = self.ob.ask - i - 1 if k.startswith(
-                "cancellation buy") else self.ob.bid + i + 1
+            self.next_event["abs_level"] = (
+                self.ob.ask - i - 1
+                if k.startswith("cancellation buy")
+                else self.ob.bid + i + 1
+            )
 
         return self.next_event
-
 
     def transition(self, event_dict=None):
         """
@@ -249,16 +314,27 @@ class MarkovChainLobModel:
         the new order book after the transition
         """
         if event_dict is None:
-            event_dict = self.sample_next_event() if self.next_event is None else self.next_event.copy()
+            event_dict = (
+                self.sample_next_event()
+                if self.next_event is None
+                else self.next_event.copy()
+            )
 
-        if self.inverse_event_types[event_dict["event"]] in ["mo bid", "lo sell", "cancellation buy"]:
-            change_ok = self.ob.change_volume(event_dict["abs_level"], event_dict["size"], absolute_level=True)
+        if self.inverse_event_types[event_dict["event"]] in [
+            "mo bid",
+            "lo sell",
+            "cancellation buy",
+        ]:
+            change_ok = self.ob.change_volume(
+                event_dict["abs_level"], event_dict["size"], absolute_level=True
+            )
         else:
-            change_ok = self.ob.change_volume(event_dict["abs_level"], -event_dict["size"], absolute_level=True)
+            change_ok = self.ob.change_volume(
+                event_dict["abs_level"], -event_dict["size"], absolute_level=True
+            )
         event_dict["ob"] = self.ob.data.copy()
         self.next_event = None
         return event_dict, change_ok
-
 
     @staticmethod
     def mo_size(alpha, k):
@@ -285,8 +361,14 @@ class MarkovChainLobModel:
                 s = 0
         return s
 
-
-    def simulate(self, num_events=int(1e3), end_time=np.inf, num_print=np.inf, order_volumes=None, order_prices=None):
+    def simulate(
+        self,
+        num_events=int(1e3),
+        end_time=np.inf,
+        num_print=np.inf,
+        order_volumes=None,
+        order_prices=None,
+    ):
         """
         Simulate the order book for a number of events
 
@@ -310,7 +392,9 @@ class MarkovChainLobModel:
             time: numpy array of time between all events
         """
 
-        data_dict = {"ob": np.zeros((num_events + 1, 2, self.num_levels + 1), dtype=int)}
+        data_dict = {
+            "ob": np.zeros((num_events + 1, 2, self.num_levels + 1), dtype=int)
+        }
         data_dict["ob"][0, ...] = self.ob.data
         data_dict["time"] = np.zeros(num_events)
 
@@ -318,8 +402,8 @@ class MarkovChainLobModel:
             self.order_volumes = order_volumes.copy()
             self.order_prices = order_prices.copy()
         else:
-            self.order_volumes = {'bid': 0, 'ask': 0}
-            self.order_prices = {'bid': None, 'ask': None}
+            self.order_volumes = {"bid": 0, "ask": 0}
+            self.order_prices = {"bid": None, "ask": None}
 
         for k in ["event", "level", "size", "index", "abs_level"]:
             data_dict[k] = np.zeros(num_events, dtype=int)
@@ -327,7 +411,7 @@ class MarkovChainLobModel:
         data_dict["total_time"] = 0
         for e in range(num_events):
             if (e + 1) % num_print == 0:
-                print('event: ', e)
+                print("event: ", e)
 
             event_dict = self.sample_next_event()
 
@@ -341,7 +425,7 @@ class MarkovChainLobModel:
 
             else:
                 data_dict["total_time"] = end_time
-                data_dict["ob"] = data_dict["ob"][:e + 1, ...]
+                data_dict["ob"] = data_dict["ob"][: e + 1, ...]
                 for k in ["event", "level", "size", "index", "time", "abs_level"]:
                     data_dict[k] = data_dict[k][:e]
                 e -= 1
@@ -349,7 +433,6 @@ class MarkovChainLobModel:
 
         data_dict["num_events"] = e + 1
         return data_dict
-
 
     def simulate_old(self, num_events=int(1e3), end_time=np.inf, num_print=np.inf):
         """
@@ -375,7 +458,9 @@ class MarkovChainLobModel:
             time: numpy array of time between all events
         """
 
-        data_dict = {"ob": np.zeros((num_events + 1, 2, self.num_levels + 1), dtype=int)}
+        data_dict = {
+            "ob": np.zeros((num_events + 1, 2, self.num_levels + 1), dtype=int)
+        }
         data_dict["ob"][0, ...] = self.ob.data
         data_dict["time"] = np.zeros(num_events)
 
@@ -385,7 +470,7 @@ class MarkovChainLobModel:
         data_dict["total_time"] = 0
         for e in range(num_events):
             if (e + 1) % num_print == 0:
-                print('event: ', e)
+                print("event: ", e)
 
             event_dict = self.sample_next_event()
 
@@ -399,7 +484,7 @@ class MarkovChainLobModel:
 
             else:
                 data_dict["total_time"] = end_time
-                data_dict["ob"] = data_dict["ob"][:e + 1, ...]
+                data_dict["ob"] = data_dict["ob"][: e + 1, ...]
                 for k in ["event", "level", "size", "index", "time", "abs_level"]:
                     data_dict[k] = data_dict[k][:e]
                 e -= 1
@@ -408,8 +493,9 @@ class MarkovChainLobModel:
         data_dict["num_events"] = e + 1
         return data_dict
 
-
-    def run_twap(self, volume, end_time, timefactor=100, initial_ob=None, padding=(0, 0)):
+    def run_twap(
+        self, volume, end_time, timefactor=100, initial_ob=None, padding=(0, 0)
+    ):
         """
         Runs a TWAP buying the volume with timedelta between each buy.
 
@@ -451,7 +537,9 @@ class MarkovChainLobModel:
         twap_dict["ask_vals"][0] = self.ob.ask
         twap_dict["bid_vals"][0] = self.ob.bid
         twap_dict["time_vals"] = np.zeros(num_times + 1)
-        twap_dict["time_vals"][:-1] = np.linspace(-(1 / timefactor), end_time, num_times)
+        twap_dict["time_vals"][:-1] = np.linspace(
+            -(1 / timefactor), end_time, num_times
+        )
         twap_dict["time_vals"][-1] = np.inf
         time_index = 1
 
@@ -468,7 +556,10 @@ class MarkovChainLobModel:
             total_time += event_dict["time"]
             if total_time < padding[0]:
                 self.transition()
-                if self.inverse_event_types[event_dict["event"]] in ['mo bid', 'mo ask']:
+                if self.inverse_event_types[event_dict["event"]] in [
+                    "mo bid",
+                    "mo ask",
+                ]:
                     twap_dict["num_mo"] += 1
             else:
                 total_time = padding[0]
@@ -484,8 +575,13 @@ class MarkovChainLobModel:
             bid_current = self.ob.bid
 
         volume_left = volume - 1
-        event_dict = {"event": self.event_types['mo ask'], "abs_level": self.ob.ask, "size": 1, "index": 1,
-                      "level": 0}
+        event_dict = {
+            "event": self.event_types["mo ask"],
+            "abs_level": self.ob.ask,
+            "size": 1,
+            "index": 1,
+            "level": 0,
+        }
         twap_dict["price"] = self.ob.ask
         self.transition(event_dict)
 
@@ -506,14 +602,21 @@ class MarkovChainLobModel:
                 total_time += event_dict["time"]
                 if total_time < (padding[0] + timedelta * (v + 1)):
                     self.transition()
-                    if self.inverse_event_types[event_dict["event"]] in ['mo bid', 'mo ask']:
+                    if self.inverse_event_types[event_dict["event"]] in [
+                        "mo bid",
+                        "mo ask",
+                    ]:
                         twap_dict["num_mo"] += 1
 
                 else:
                     total_time = padding[0] + timedelta * (v + 1)
                     twap_dict["price"] += self.ob.ask
-                    event_dict = {"event": self.event_types['mo ask'], "abs_level": self.ob.ask, "size": 1,
-                                  "level": 0}
+                    event_dict = {
+                        "event": self.event_types["mo ask"],
+                        "abs_level": self.ob.ask,
+                        "size": 1,
+                        "level": 0,
+                    }
                     self.transition(event_dict)
 
                 while total_time > twap_dict["time_vals"][time_index]:
@@ -538,7 +641,10 @@ class MarkovChainLobModel:
             total_time += event_dict["time"]
             if total_time < end_time:
                 self.transition(event_dict)
-                if self.inverse_event_types[event_dict["event"]] in ['mo bid', 'mo ask']:
+                if self.inverse_event_types[event_dict["event"]] in [
+                    "mo bid",
+                    "mo ask",
+                ]:
                     twap_dict["num_mo"] += 1
             else:
                 total_time = end_time

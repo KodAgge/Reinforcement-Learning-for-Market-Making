@@ -13,10 +13,21 @@ from datetime import timedelta
 import os
 
 
-def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cutoff=0.5,
-                       epsilon_start=1, epsilon_end=0.05, epsilon_cutoff=0.25,
-                       beta_start=1, beta_end=0.01, beta_cutoff=0.5,
-                       gamma=1, exploring_starts=True):
+def tabular_Q_learning(
+    env,
+    n=1e4,
+    alpha_start=0.1,
+    alpha_end=0.00005,
+    alpha_cutoff=0.5,
+    epsilon_start=1,
+    epsilon_end=0.05,
+    epsilon_cutoff=0.25,
+    beta_start=1,
+    beta_end=0.01,
+    beta_cutoff=0.5,
+    gamma=1,
+    exploring_starts=True,
+):
     """
     tabular_Q_learning is a function that performs tabular Q-learning.
 
@@ -51,7 +62,7 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
 
     Returns
     -------
-    Q_tab : defaultdict 
+    Q_tab : defaultdict
         with all Q-values from the Q-learning
     rewards : list
         list with all episode rewards during training
@@ -83,7 +94,9 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
 
     for episode in range(int(n)):
         # epsilon greedy policy
-        epsilon = linear_decreasing(episode, n, epsilon_start, epsilon_end, epsilon_cutoff)
+        epsilon = linear_decreasing(
+            episode, n, epsilon_start, epsilon_end, epsilon_cutoff
+        )
 
         # update learning rate
         # alpha = linear_decreasing(episode, n, alpha_start, alpha_end, alpha_cutoff)
@@ -95,7 +108,9 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
         # Exploring starts
         if exploring_starts is True:
             if random.random() < beta:
-                env.Q_0 = env.observation_space.sample()[0]  # Sample Q_t from the observation space
+                env.Q_0 = env.observation_space.sample()[
+                    0
+                ]  # Sample Q_t from the observation space
             else:
                 env.Q_0 = 0
         else:
@@ -110,36 +125,58 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
 
             explore = random.random() < epsilon
 
-            if state not in list(Q_tab.keys()) or explore:  # Random if explore or unvisisted
+            if (
+                state not in list(Q_tab.keys()) or explore
+            ):  # Random if explore or unvisisted
                 action = env.action_space.sample()
             else:  # Maximum otherwise
-                action = np.array(np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape))
+                action = np.array(
+                    np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape)
+                )
 
-            new_state, action_reward = env.step(action)  # Get the new state and the reward
+            new_state, action_reward = env.step(
+                action
+            )  # Get the new state and the reward
 
             action = tuple(action)  # To be able to use for indexing
 
-            episode_reward += action_reward  # * (gamma ** env.t)  # Discounting with gamma
+            episode_reward += (
+                action_reward  # * (gamma ** env.t)  # Discounting with gamma
+            )
 
             state_action_count[state][action] += 1
 
             # Update the Q table
             Q_tab[state][action] = Q_tab[state][action] + alpha * (
-                    action_reward + gamma * (np.max(Q_tab[new_state]) - Q_tab[state][action]))
+                action_reward
+                + gamma * (np.max(Q_tab[new_state]) - Q_tab[state][action])
+            )
 
         # Save the reward
         reward_grouped.append(episode_reward)
 
         # Save the best Q-value
-        Q_zero_grouped.append(np.max(Q_tab[(0,0)]))
+        Q_zero_grouped.append(np.max(Q_tab[(0, 0)]))
 
         # Printing every 20% of total episodes
         if (episode + 1) % (0.2 * n) == 0:
             percentage = "{:.0%}".format(episode / n)
 
-            time_remaining = str(timedelta(seconds=round((t.time() - start_time) / (episode + 1) * (n - episode - 1), 2)))
+            time_remaining = str(
+                timedelta(
+                    seconds=round(
+                        (t.time() - start_time) / (episode + 1) * (n - episode - 1), 2
+                    )
+                )
+            )
 
-            print("\tEpisode", episode + 1, "(" + percentage + "),", time_remaining, "remaining of this run")
+            print(
+                "\tEpisode",
+                episode + 1,
+                "(" + percentage + "),",
+                time_remaining,
+                "remaining of this run",
+            )
 
         if episode % (max(n / 1e4, 5)) == 0:
             rewards_average.append(np.mean(reward_grouped))
@@ -151,11 +188,10 @@ def tabular_Q_learning(env, n=1e4, alpha_start=0.1, alpha_end=0.00005, alpha_cut
             reward_grouped = []
             Q_zero_grouped = []
 
-
     return Q_tab, rewards_average, Q_zero_average, x_values
 
 
-def exponential_decreasing(value, factor = 0.9999):
+def exponential_decreasing(value, factor=0.9999):
     """
     returns the value for the next time step
 
@@ -205,7 +241,17 @@ def linear_decreasing(episode, n, start, end, cutoff):
     return value
 
 
-def save_Q(Q, args, n, rewards_average, Q_zero_average, x_values, suffix = "", folder_mode = False, folder_name = None):
+def save_Q(
+    Q,
+    args,
+    n,
+    rewards_average,
+    Q_zero_average,
+    x_values,
+    suffix="",
+    folder_mode=False,
+    folder_name=None,
+):
     """
     save_Q saves the Q table to a pkl file
 
@@ -236,16 +282,25 @@ def save_Q(Q, args, n, rewards_average, Q_zero_average, x_values, suffix = "", f
 
     # Create the file
     if folder_mode:
-
         try:
             os.makedirs("results/simple_model/" + folder_name)
         except:
             print("THE FOLDER", folder_name, "ALREADY EXISTS")
 
-        file_name = "results/simple_model/" + folder_name + "/" + fetch_table_name(args, n, suffix) + ".pkl"
+        file_name = (
+            "results/simple_model/"
+            + folder_name
+            + "/"
+            + fetch_table_name(args, n, suffix)
+            + ".pkl"
+        )
 
     else:
-        file_name = "results/simple_model/q_tables/" + fetch_table_name(args, n, suffix) + ".pkl"
+        file_name = (
+            "results/simple_model/q_tables/"
+            + fetch_table_name(args, n, suffix)
+            + ".pkl"
+        )
 
     file = open(file_name, "wb")
 
@@ -256,7 +311,7 @@ def save_Q(Q, args, n, rewards_average, Q_zero_average, x_values, suffix = "", f
     return file_name
 
 
-def load_Q(filename, default=True, folder_mode = False, folder_name = None):
+def load_Q(filename, default=True, folder_mode=False, folder_name=None):
     """
     loads a Q table from a pkl file
 
@@ -290,10 +345,12 @@ def load_Q(filename, default=True, folder_mode = False, folder_name = None):
 
     else:
         results_folder = "q_tables"
-     
+
     # Load the file
     try:
-        file = open("results/simple_model/" + results_folder + "/" + filename + ".pkl", "rb")
+        file = open(
+            "results/simple_model/" + results_folder + "/" + filename + ".pkl", "rb"
+        )
     except:
         file = open(filename, "rb")
 
@@ -313,7 +370,7 @@ def load_Q(filename, default=True, folder_mode = False, folder_name = None):
     return Q_loaded, args, n, rewards_average, Q_zero_average, x_values
 
 
-def fetch_table_name(args, n, suffix = ""):
+def fetch_table_name(args, n, suffix=""):
     """
     creates a filename based on the input arguments
 
@@ -333,8 +390,19 @@ def fetch_table_name(args, n, suffix = ""):
     """
 
     # Creates the table names based on the chosen parameters
-    return "Q_" + "_".join(
-        [list(args.keys())[i] + str(list(args.values())[i]) for i in range(len(args.values()))]) + "_n" + str(int(n)) + "_" + str(suffix)
+    return (
+        "Q_"
+        + "_".join(
+            [
+                list(args.keys())[i] + str(list(args.values())[i])
+                for i in range(len(args.values()))
+            ]
+        )
+        + "_n"
+        + str(int(n))
+        + "_"
+        + str(suffix)
+    )
 
 
 def _plot_rewards_helper(x, smoothing=0.99):
@@ -359,7 +427,9 @@ def _plot_rewards_helper(x, smoothing=0.99):
     smooth_rewards[0] = x[0]
 
     for n in range(len(smooth_rewards) - 1):
-        smooth_rewards[n + 1] = smoothing * smooth_rewards[n] + (1 - smoothing) * x[n + 1]
+        smooth_rewards[n + 1] = (
+            smoothing * smooth_rewards[n] + (1 - smoothing) * x[n + 1]
+        )
 
     return smooth_rewards
 
@@ -439,7 +509,6 @@ def save_parameters(model_parameters, Q_learning_parameters, folder_name):
     file_path = "results/simple_model/" + folder_name + "/parameters.txt"
 
     with open(file_path, "w") as f:
-
         f.write("MODEL PARAMETERS\n")
         for key in list(model_parameters.keys()):
             f.write(str(key) + " : " + str(model_parameters[key]) + "\n")
@@ -449,7 +518,9 @@ def save_parameters(model_parameters, Q_learning_parameters, folder_name):
             f.write(str(key) + " : " + str(Q_learning_parameters[key]) + "\n")
 
 
-def Q_learning_multiple(args, Q_learning_args, n = 1e5, n_runs = 5, folder_mode = True, folder_name = None):
+def Q_learning_multiple(
+    args, Q_learning_args, n=1e5, n_runs=5, folder_mode=True, folder_name=None
+):
     """
     does several runs of tabular Q learning
 
@@ -484,11 +555,27 @@ def Q_learning_multiple(args, Q_learning_args, n = 1e5, n_runs = 5, folder_mode 
         print("RUN", suffix, "IN PROGRESS...")
         start_time_sub = t.time()
 
-        env = SimpleEnv(**args, printing=False, debug=False, breach_penalty_function = np.abs)
+        env = SimpleEnv(
+            **args, printing=False, debug=False, breach_penalty_function=np.abs
+        )
 
-        Q_tab, rewards_average, Q_zero_average, x_values = tabular_Q_learning(env, **Q_learning_args)
+        Q_tab, rewards_average, Q_zero_average, x_values = tabular_Q_learning(
+            env, **Q_learning_args
+        )
 
-        file_names.append(save_Q(Q_tab, args, n, rewards_average, Q_zero_average, x_values, suffix, folder_mode=folder_mode, folder_name=folder_name))
+        file_names.append(
+            save_Q(
+                Q_tab,
+                args,
+                n,
+                rewards_average,
+                Q_zero_average,
+                x_values,
+                suffix,
+                folder_mode=folder_mode,
+                folder_name=folder_name,
+            )
+        )
 
         # Calculate run time for the single run
         run_time = str(timedelta(seconds=round(t.time() - start_time_sub, 2)))
@@ -496,10 +583,16 @@ def Q_learning_multiple(args, Q_learning_args, n = 1e5, n_runs = 5, folder_mode 
 
         # Calculate the remaining time
         if suffix < len(suffixes):
-            remaining_time = str(timedelta(seconds=round((len(suffixes)-suffix) * (t.time() - start_time_sub), 2)))
+            remaining_time = str(
+                timedelta(
+                    seconds=round(
+                        (len(suffixes) - suffix) * (t.time() - start_time_sub), 2
+                    )
+                )
+            )
             print(remaining_time, "REMAINING OF THE TRAINING")
 
-        print("="*40)
+        print("=" * 40)
 
     # Print the total training time for all runs
     total_time = str(timedelta(seconds=round(t.time() - start_time, 2)))

@@ -28,8 +28,12 @@ class LOB:
 
     @property
     def vwap_mid(self):
-        vwap_a = np.dot(self.data[0, 1:], self.bid + 1 + np.arange(self.num_levels)) / np.sum(self.data[0, 1:])
-        vwap_b = np.dot(-self.data[1, 1:], self.ask - 1 - np.arange(self.num_levels)) / np.sum(-self.data[1, 1:])
+        vwap_a = np.dot(
+            self.data[0, 1:], self.bid + 1 + np.arange(self.num_levels)
+        ) / np.sum(self.data[0, 1:])
+        vwap_b = np.dot(
+            -self.data[1, 1:], self.ask - 1 - np.arange(self.num_levels)
+        ) / np.sum(-self.data[1, 1:])
         vwap = (vwap_a + vwap_b) / 2
         return vwap
 
@@ -40,7 +44,9 @@ class LOB:
         if bid_volume == 0 and ask_volume == 0:
             return self.mid
         else:
-            return (self.ask * bid_volume + self.bid * ask_volume) / (bid_volume + ask_volume)
+            return (self.ask * bid_volume + self.bid * ask_volume) / (
+                bid_volume + ask_volume
+            )
 
     @property
     def spread(self):
@@ -52,13 +58,27 @@ class LOB:
 
     @property
     def ask_volume(self):
-        return 0 if self.spread > self.num_levels else (
-            self.data[0, self.spread] if self.include_spread_levels else self.data[0, 1])
+        return (
+            0
+            if self.spread > self.num_levels
+            else (
+                self.data[0, self.spread]
+                if self.include_spread_levels
+                else self.data[0, 1]
+            )
+        )
 
     @property
     def bid_volume(self):
-        return 0 if self.spread > self.num_levels else (
-            -self.data[1, self.spread] if self.include_spread_levels else -self.data[1, 1])
+        return (
+            0
+            if self.spread > self.num_levels
+            else (
+                -self.data[1, self.spread]
+                if self.include_spread_levels
+                else -self.data[1, 1]
+            )
+        )
 
     def buy_n(self, n=1):
         total_price = 0
@@ -117,13 +137,13 @@ class LOB:
     def q_ask(self, num_levels=None):
         if num_levels is None:
             num_levels = self.num_levels
-        x = self.data[0, 1:1 + num_levels]
+        x = self.data[0, 1 : 1 + num_levels]
         return x
 
     def q_bid(self, num_levels=None):
         if num_levels is None:
             num_levels = self.num_levels
-        x = -self.data[1, 1:1 + num_levels]
+        x = -self.data[1, 1 : 1 + num_levels]
         return x
 
     def get_volume(self, level, absolute_level=False):
@@ -166,9 +186,15 @@ class LOB:
         if depth is None:
             depth = self.num_levels
         vol_sell = np.sum(
-            self.data[0, self.spread:self.spread + depth] if self.include_spread_levels else self.data[0, 1:1 + depth])
-        vol_buy = np.sum(-self.data[1, self.spread:self.spread + depth] if self.include_spread_levels else -self.data[1,
-                                                                                                            1:1 + depth])
+            self.data[0, self.spread : self.spread + depth]
+            if self.include_spread_levels
+            else self.data[0, 1 : 1 + depth]
+        )
+        vol_buy = np.sum(
+            -self.data[1, self.spread : self.spread + depth]
+            if self.include_spread_levels
+            else -self.data[1, 1 : 1 + depth]
+        )
         if vol_buy + vol_sell == 0:
             return 0.5
         else:
@@ -182,14 +208,15 @@ class LOB:
         if level == 0:
             if self.ask_volume + volume < -1e-6:
                 if print_info:
-                    print('LEVEL 0')
+                    print("LEVEL 0")
                     print(self.data)
-                    print('level: ', level)
-                    print('volume: ', volume)
+                    print("level: ", level)
+                    print("volume: ", volume)
                     print(self.ask_volume + volume)
                 return False
-            self.data[0, np.min([offset, self.num_levels])] = np.round(self.data[0, np.min([offset, self.num_levels])]
-                                                                       + volume, decimals=6)
+            self.data[0, np.min([offset, self.num_levels])] = np.round(
+                self.data[0, np.min([offset, self.num_levels])] + volume, decimals=6
+            )
 
             # if ask volume 0, move ask
             if self.data[0, offset] == 0:
@@ -210,10 +237,10 @@ class LOB:
                     self.data[1, 0] -= move_ask
                     if self.include_spread_levels:
                         self.data[0, old_spread] = 0
-                        self.data[1, 1 + move_ask:] = self.data[1, 1:-move_ask]
-                        self.data[1, 1:1 + move_ask] = 0
+                        self.data[1, 1 + move_ask :] = self.data[1, 1:-move_ask]
+                        self.data[1, 1 : 1 + move_ask] = 0
                     else:
-                        self.data[0, 1:-move_ask] = self.data[0, 1 + move_ask:]
+                        self.data[0, 1:-move_ask] = self.data[0, 1 + move_ask :]
                         self.data[0, -move_ask:] = self.outside_volume
             return True
         elif level > 0:
@@ -225,7 +252,9 @@ class LOB:
                 return False
             # transition by adding volume on ask side
             else:
-                self.data[0, offset + level] = np.round(self.data[0, offset + level] + volume, decimals=6)
+                self.data[0, offset + level] = np.round(
+                    self.data[0, offset + level] + volume, decimals=6
+                )
                 return True
 
         else:
@@ -233,7 +262,9 @@ class LOB:
             if -level > self.num_levels + self.spread - offset:
                 return True
 
-            level_index = -level if self.include_spread_levels else -level - self.spread + 1
+            level_index = (
+                -level if self.include_spread_levels else -level - self.spread + 1
+            )
 
             # if adding volume inside the spread
             if self.spread + level > 0:
@@ -244,11 +275,15 @@ class LOB:
                     self.data[1, 0] = level
                     if self.include_spread_levels:
                         self.data[1, -level] = volume
-                        self.data[0, 1:-old_spread - level] = self.data[0, 1 + old_spread + level:]
-                        self.data[0, -old_spread - level:] = self.outside_volume
+                        self.data[0, 1 : -old_spread - level] = self.data[
+                            0, 1 + old_spread + level :
+                        ]
+                        self.data[0, -old_spread - level :] = self.outside_volume
                     else:
-                        self.data[1, 1 + old_spread + level:] = self.data[1, 1:-(old_spread + level)]
-                        self.data[1, 1:old_spread + level] = 0
+                        self.data[1, 1 + old_spread + level :] = self.data[
+                            1, 1 : -(old_spread + level)
+                        ]
+                        self.data[1, 1 : old_spread + level] = 0
                         self.data[1, old_spread + level] = volume
                     return True
 
@@ -259,11 +294,13 @@ class LOB:
                     self.data[1, 0] -= level
                     if self.include_spread_levels:
                         self.data[0, self.spread] = volume
-                        self.data[1, 1:level] = self.data[1, 1 - level:]
+                        self.data[1, 1:level] = self.data[1, 1 - level :]
                         self.data[1, level:] = -self.outside_volume
                     else:
-                        self.data[0, 1 + old_spread + level:] = self.data[0, 1:-(old_spread + level)]
-                        self.data[0, 1:old_spread + level] = 0
+                        self.data[0, 1 + old_spread + level :] = self.data[
+                            0, 1 : -(old_spread + level)
+                        ]
+                        self.data[0, 1 : old_spread + level] = 0
                         self.data[0, old_spread + level] = volume
                     return True
 
@@ -273,12 +310,14 @@ class LOB:
 
             # transition by adding volume on bid side
             else:
-                self.data[1, level_index] = np.round(self.data[1, level_index] + volume, decimals=6)
+                self.data[1, level_index] = np.round(
+                    self.data[1, level_index] + volume, decimals=6
+                )
 
                 # adjust if best bid changed
                 if (self.data[1, level_index] == 0) and (self.relative_bid == level):
                     old_spread = self.spread
-                    index = np.argwhere(self.data[1, level_index + 1:])
+                    index = np.argwhere(self.data[1, level_index + 1 :])
                     if index.size == 0:
                         if print_info:
                             print(self.data)
@@ -292,10 +331,10 @@ class LOB:
                         self.data[1, 0] -= move_bid
                         if self.include_spread_levels:
                             self.data[1, old_spread] = 0
-                            self.data[0, 1 + move_bid:] = self.data[0, 1:-move_bid]
-                            self.data[0, 1:1 + move_bid] = 0
+                            self.data[0, 1 + move_bid :] = self.data[0, 1:-move_bid]
+                            self.data[0, 1 : 1 + move_bid] = 0
                         else:
-                            self.data[1, 1:-move_bid] = self.data[1, 1 + move_bid:]
+                            self.data[1, 1:-move_bid] = self.data[1, 1 + move_bid :]
                             self.data[1, -move_bid] = -self.outside_volume
                 return True
 
@@ -415,7 +454,7 @@ def q_ask(x):
     q = np.zeros(len(x))
     p = bid(x)
     if p >= 0:
-        q[:-(p + 1)] = x[p + 1:]
+        q[: -(p + 1)] = x[p + 1 :]
     else:
         q = x
     return q
@@ -438,7 +477,7 @@ def vwap_mid(x):
     prices = np.arange(len(x))
     b = bid(x)
     a = ask(x)
-    vwap_b = np.dot(x[:b + 1], prices[:b + 1]) / np.sum(x[:b + 1])
+    vwap_b = np.dot(x[: b + 1], prices[: b + 1]) / np.sum(x[: b + 1])
     vwap_a = np.dot(x[a:], prices[a:]) / np.sum(x[a:])
     vwap = (vwap_a + vwap_b) / 2
     return vwap
@@ -460,7 +499,7 @@ def buy_volume(x, depth):
     int of volume
 
     """
-    return -np.sum(x[np.maximum(bid(x) - depth, 0):bid(x) + 1])
+    return -np.sum(x[np.maximum(bid(x) - depth, 0) : bid(x) + 1])
 
 
 def sell_volume(x, depth):
@@ -479,7 +518,7 @@ def sell_volume(x, depth):
     int of volume
 
     """
-    return np.sum(x[ask(x):ask(x) + 1 + depth])
+    return np.sum(x[ask(x) : ask(x) + 1 + depth])
 
 
 def realized_vol(prices, seq_length=-1):
@@ -502,7 +541,7 @@ def realized_vol(prices, seq_length=-1):
         num_seq = int(prices.shape[1] / seq_length)
         price_seqs = np.zeros((prices.shape[0], num_seq, seq_length + 1))
         for n in range(num_seq):
-            price_seqs[:, n, :] = prices[:, n * seq_length:(n + 1) * seq_length + 1]
+            price_seqs[:, n, :] = prices[:, n * seq_length : (n + 1) * seq_length + 1]
         prices = price_seqs.reshape((-1, seq_length + 1))
 
     return np.std(np.diff(prices, axis=-1), axis=-1)
@@ -557,7 +596,11 @@ def price_signature(p, p0, sizes=None):
     p0 = np.tile(p0[:, :, np.newaxis], d)
     if sizes is not None:
         sizes = np.tile(sizes[:, :, np.newaxis], d)
-    s = np.sum((p - p0) / sizes, axis=1) / n if sizes is not None else np.sum(p - p0, axis=1) / n
+    s = (
+        np.sum((p - p0) / sizes, axis=1) / n
+        if sizes is not None
+        else np.sum(p - p0, axis=1) / n
+    )
     return s
 
 
@@ -588,14 +631,16 @@ def get_volumes(ob, num_levels=10, relative=True, negative_bids=False):
     x = np.zeros(4 * num_levels)
     x[0] = ask(ob)
 
-    ask_nonzero = (ob > 0)
+    ask_nonzero = ob > 0
     ask_idx = np.argwhere(ask_nonzero)[:num_levels].flatten()
-    x[4:(4 * ask_idx.size):4] = ask_idx[1:] - x[0] if relative else ask_idx[1:]
-    x[1:(4 * ask_idx.size + 1):4] = ob[ask_idx]
+    x[4 : (4 * ask_idx.size) : 4] = ask_idx[1:] - x[0] if relative else ask_idx[1:]
+    x[1 : (4 * ask_idx.size + 1) : 4] = ob[ask_idx]
 
-    bid_nonzero = (ob < 0)
+    bid_nonzero = ob < 0
     bid_idx = np.flip(np.argwhere(bid_nonzero).flatten())[:num_levels]
-    x[2:(4 * bid_idx.size + 2):4] = bid_idx - x[0] if relative else bid_idx
-    x[3:(4 * bid_idx.size + 3):4] = ob[bid_idx] if negative_bids else np.abs(ob[bid_idx])
+    x[2 : (4 * bid_idx.size + 2) : 4] = bid_idx - x[0] if relative else bid_idx
+    x[3 : (4 * bid_idx.size + 3) : 4] = (
+        ob[bid_idx] if negative_bids else np.abs(ob[bid_idx])
+    )
 
     return x

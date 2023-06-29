@@ -61,29 +61,51 @@ class SimpleEnv(gym.Env):
         function used to transform the exceeded inventory to a penalty
     """
 
-    def __init__(self,
-                 T=10, dt=1, Q=3, dq=1, Q_0=0, dp=0.1, min_dp=1, mu=100, std=0.01, lambda_pos=1,
-                 lambda_neg=1, kappa=100, alpha=1e-4, phi=1e-5, pre_run=None, printing=False, debug=False, d=5,
-                 use_all_times=True, analytical=False, breaching_penalty=False, breach_penalty=20,
-                 reward_scale=1, breach_penalty_function=np.square):
+    def __init__(
+        self,
+        T=10,
+        dt=1,
+        Q=3,
+        dq=1,
+        Q_0=0,
+        dp=0.1,
+        min_dp=1,
+        mu=100,
+        std=0.01,
+        lambda_pos=1,
+        lambda_neg=1,
+        kappa=100,
+        alpha=1e-4,
+        phi=1e-5,
+        pre_run=None,
+        printing=False,
+        debug=False,
+        d=5,
+        use_all_times=True,
+        analytical=False,
+        breaching_penalty=False,
+        breach_penalty=20,
+        reward_scale=1,
+        breach_penalty_function=np.square,
+    ):
         super(SimpleEnv, self).__init__()
 
-        self.T = T              # maximal time
-        self.dt = dt            # time increments
+        self.T = T  # maximal time
+        self.dt = dt  # time increments
 
-        self.Q = Q              # maximal volume
-        self.dq = dq            # volume increments the agent can work with
-        self.Q_0 = Q_0          # the starting volume
+        self.Q = Q  # maximal volume
+        self.dq = dq  # volume increments the agent can work with
+        self.Q_0 = Q_0  # the starting volume
 
-        self.dp = dp            # tick size
-        self.min_dp = min_dp    # the minimum number of ticks from the mid price the market maker has to put their ask/bid price
-        self.d = d              # Number of ticks away the market maker is allowed to quote
+        self.dp = dp  # tick size
+        self.min_dp = min_dp  # the minimum number of ticks from the mid price the market maker has to put their ask/bid price
+        self.d = d  # Number of ticks away the market maker is allowed to quote
 
-        self.mu = mu            # average price of the stock
-        self.std = std          # standard deviation the price movement
+        self.mu = mu  # average price of the stock
+        self.std = std  # standard deviation the price movement
 
-        self.alpha = alpha      # penalty for holding volume
-        self.phi = phi          # the running inventory penalty parameter
+        self.alpha = alpha  # penalty for holding volume
+        self.phi = phi  # the running inventory penalty parameter
 
         self.use_all_times = use_all_times
 
@@ -122,49 +144,48 @@ class SimpleEnv(gym.Env):
         # Remembering the start price for the reward
         self.start_mid = self.mid
 
-
     def set_action_space(self):
         """
         Sets the action space
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
         """
 
         low = np.array([0, 0])
-        high = np.array([self.d - 1, self.d - 1])  # d-1 due to actions defined on [0, d-1]^2, where action [i,j]
+        high = np.array(
+            [self.d - 1, self.d - 1]
+        )  # d-1 due to actions defined on [0, d-1]^2, where action [i,j]
         # corresponds to quoting i+1 and j+1 ticks away as bid and ask prices
 
         self.action_space = gym.spaces.Box(low=low, high=high, dtype=np.int16)
 
-
     def set_observation_space(self):
         """
         Sets the observation space
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
         """
 
         if self.use_all_times:
-            low = np.array([- self.Q, 0])
+            low = np.array([-self.Q, 0])
             high = np.array([self.Q, self.T / self.dt])
         else:
-            low = np.array([- self.Q, 0])
+            low = np.array([-self.Q, 0])
             high = np.array([self.Q, 1])
 
         self.observation_space = gym.spaces.Box(low=low, high=high, dtype=np.int16)
-
 
     def state(self):
         """
@@ -188,16 +209,15 @@ class SimpleEnv(gym.Env):
         else:
             return self.Q_t, int(self.t / self.T >= 0.9)
 
-
     def pre_run(self, n_steps=100):
         """
         Updates the price n_steps times
-        
+
         Parameters
         ----------
         n_steps : integer
             the number of time steps the price process should be run for
-            
+
         Returns
         -------
         None
@@ -206,15 +226,14 @@ class SimpleEnv(gym.Env):
         for _ in range(n_steps):
             self.update_price()
 
-
     def update_price(self):
         """
         Updates the mid price once and makes sure it's within bounds
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
@@ -223,40 +242,42 @@ class SimpleEnv(gym.Env):
         # The change rounded to the closest tick size
         self.mid += self.round_to_tick(np.random.normal(0, self.std))
 
-
     def init_analytically_optimal(self):
         """
         Calculates z and A which will be used for the optimal solution
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
         """
 
-        self.z = np.exp(-self.alpha * self.kappa * np.square(np.array(range(self.Q, -self.Q - 1, -1))))
+        self.z = np.exp(
+            -self.alpha
+            * self.kappa
+            * np.square(np.array(range(self.Q, -self.Q - 1, -1)))
+        )
         self.A = np.zeros((self.Q * 2 + 1, self.Q * 2 + 1))
         for i in range(-self.Q, self.Q + 1):
             for q in range(-self.Q, self.Q + 1):
                 if i == q:
-                    self.A[i + self.Q, q + self.Q] = -self.phi * self.kappa * (q ** 2)
+                    self.A[i + self.Q, q + self.Q] = -self.phi * self.kappa * (q**2)
                 elif i == q - 1:
                     self.A[i + self.Q, q + self.Q] = self.lambda_pos * np.exp(-1)
                 elif i == q + 1:
                     self.A[i + self.Q, q + self.Q] = self.lambda_neg * np.exp(-1)
 
-
     def calc_analytically_optimal(self):
         """
         Calculates the analytically optimal bid/ask depth for the current time step
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         action : np array
@@ -285,15 +306,14 @@ class SimpleEnv(gym.Env):
 
         return action
 
-
     def discrete_analytically_optimal(self):
         """
         Calculates the analytically optimal bid/ask depth for the current time step in #ticks
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         action : np array
@@ -304,16 +324,15 @@ class SimpleEnv(gym.Env):
 
         return action
 
-
     def round_to_tick(self, p):
         """
         Round a price to the closest tick
-        
+
         Parameters
         ----------
         p : float
             the input price
-            
+
         Returns
         -------
         p : float
@@ -322,17 +341,16 @@ class SimpleEnv(gym.Env):
 
         return np.round(p / self.dp, decimals=0) * self.dp
 
-
     def transform_action(self, action):
         """
-        Transforms an action in number of ticks to the actual difference in bid/ask from the mid price.  
+        Transforms an action in number of ticks to the actual difference in bid/ask from the mid price.
         Also includes the minimum distance to the mid price and transforms ask to negative.
-        
+
         Parameters
         ----------
         action : np array
             the number of ticks away from the tick price for the ask and bid price
-            
+
         Returns
         -------
         action : np array
@@ -341,16 +359,15 @@ class SimpleEnv(gym.Env):
 
         return (action + self.min_dp) * np.array([-1, 1]) * self.dp
 
-
     def step(self, action):
         """
         Takes a step in the environment based on the market maker taking an action
-        
+
         Parameters
         ----------
         action : np array
             the number of ticks away from the tick price for the ask and bid price
-            
+
         Returns
         -------
         obs : tuple
@@ -397,7 +414,9 @@ class SimpleEnv(gym.Env):
 
             # Step 1: add cash from the arriving buy and sell MOs that perfectly cancel each other
             if n_exec_MO_buy * n_exec_MO_sell > 0:
-                self.X_t += (self.mm_ask - self.mm_bid) * np.min([n_exec_MO_buy, n_exec_MO_sell])
+                self.X_t += (self.mm_ask - self.mm_bid) * np.min(
+                    [n_exec_MO_buy, n_exec_MO_sell]
+                )
 
             # Note to self: there shouldn't be any issues with infinite bids and asks since the probability of a
             # filled LO at +/- inf is zero
@@ -406,17 +425,27 @@ class SimpleEnv(gym.Env):
             # Net balance for the market maker is the difference in arriving MO sell and arriving MO buy orders
             n_MO_net = n_exec_MO_sell - n_exec_MO_buy
 
-            if n_MO_net != 0:  # Saving computational power, if net above is zero, skip below
+            if (
+                n_MO_net != 0
+            ):  # Saving computational power, if net above is zero, skip below
                 # Determine if net balance would result in a limit breach, and if so, adjust accordingly to keep
                 # within limits
                 if n_MO_net + self.Q_t > self.Q:  # long inventory limit breach
-                    self.breach = self.breach_penalty_function(n_MO_net + self.Q_t - self.Q)
-                    n_MO_net = self.Q - self.Q_t  # the maximum allowed net increase is given by Q - Q_t
-                    n_exec_MO_sell -= (n_MO_net + self.Q_t - self.Q)
-                elif n_MO_net + self.Q_t < - self.Q:  # short inventory limit breach
-                    self.breach = self.breach_penalty_function(-self.Q - (n_MO_net + self.Q_t))
-                    n_MO_net = - self.Q - self.Q_t  # the maximum allowed net decrease is given by -Q + Q_t
-                    n_exec_MO_buy -= (- self.Q - (n_MO_net + self.Q_t))
+                    self.breach = self.breach_penalty_function(
+                        n_MO_net + self.Q_t - self.Q
+                    )
+                    n_MO_net = (
+                        self.Q - self.Q_t
+                    )  # the maximum allowed net increase is given by Q - Q_t
+                    n_exec_MO_sell -= n_MO_net + self.Q_t - self.Q
+                elif n_MO_net + self.Q_t < -self.Q:  # short inventory limit breach
+                    self.breach = self.breach_penalty_function(
+                        -self.Q - (n_MO_net + self.Q_t)
+                    )
+                    n_MO_net = (
+                        -self.Q - self.Q_t
+                    )  # the maximum allowed net decrease is given by -Q + Q_t
+                    n_exec_MO_buy -= -self.Q - (n_MO_net + self.Q_t)
                 else:
                     self.breach = False
 
@@ -474,16 +503,15 @@ class SimpleEnv(gym.Env):
 
         return self.state(), reward
 
-
     def _get_reward(self, V_t):
         """
         Returns the reward for the current time step
-        
+
         Parameters
         ----------
         V_t : float
             the value process for the previous time step
-            
+
         Returns
         -------
         reward : float
@@ -494,19 +522,22 @@ class SimpleEnv(gym.Env):
         # Subtract penalty for held volume
 
         if self.breaching_penalty:
-            return self.reward_scale * (V_t - self.V_t) + self.inventory_penalty() - self.breach_penalty * self.breach
+            return (
+                self.reward_scale * (V_t - self.V_t)
+                + self.inventory_penalty()
+                - self.breach_penalty * self.breach
+            )
         else:
             return self.reward_scale * (V_t - self.V_t) + self.inventory_penalty()
-
 
     def H_t(self):
         """
         Returns the value of the currently held volume
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         H_t : float
@@ -515,32 +546,30 @@ class SimpleEnv(gym.Env):
 
         return self.Q_t * self.mid
 
-
     def inventory_penalty(self):
         """
         Returns the penalty for the running inventory
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         g_t : float
             the running inventory penalty
         """
 
-        return - self.phi * (self.Q_t ** 2)
-
+        return -self.phi * (self.Q_t**2)
 
     def final_liquidation(self):
         """
         Returns the value of the held volume at time T
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         value : float
@@ -549,15 +578,14 @@ class SimpleEnv(gym.Env):
 
         return self.Q_t * (self.mid - self.alpha * self.Q_t)
 
-
     def reset(self):
         """
         Resets the environment
-        
+
         Parameters
         ----------
         None
-            
+
         Returns
         -------
         None
@@ -565,32 +593,31 @@ class SimpleEnv(gym.Env):
 
         self.mid = self.mu
         self.Q_t = self.Q_0
-        self.V_t = self.H_t()   # the value process involves no cash at the start
+        self.V_t = self.H_t()  # the value process involves no cash at the start
         self.t = 0
-        self.X_t = 0            # the cash process
+        self.X_t = 0  # the cash process
 
-
-    def render(self, mode='human', close=False):
+    def render(self, mode="human", close=False):
         """
         Prints useful stats of the environment and the agent
-        
+
         Parameters
         ----------
         mode : string
             ???
         close : bool
             ???
-            
+
         Returns
         -------
         None
         """
 
-        print(20 * '-')
-        print(f'End of t = {self.t}')
-        print(f'Current mid price: {np.round(self.mid, 2)}')
-        print(f'Current held volume: {self.Q_t}')
-        print(f'Current held value: {np.round(self.H_t(), 2)}')
-        print(f'Current cash process: {np.round(self.X_t, 2)}')
-        print(f'Current value process: {np.round(self.V_t, 2)}')
-        print(20 * '-' + '\n')
+        print(20 * "-")
+        print(f"End of t = {self.t}")
+        print(f"Current mid price: {np.round(self.mid, 2)}")
+        print(f"Current held volume: {self.Q_t}")
+        print(f"Current held value: {np.round(self.H_t(), 2)}")
+        print(f"Current cash process: {np.round(self.X_t, 2)}")
+        print(f"Current value process: {np.round(self.V_t, 2)}")
+        print(20 * "-" + "\n")

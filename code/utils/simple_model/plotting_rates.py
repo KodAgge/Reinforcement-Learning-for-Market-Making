@@ -30,9 +30,11 @@ alpha = []
 for i in range(int(n)):
     if i % 1000 == 0:
         x.append(i)
-        epsilon.append(linear_decreasing(i, n, epsilon_start, epsilon_end, epsilon_cutoff))
+        epsilon.append(
+            linear_decreasing(i, n, epsilon_start, epsilon_end, epsilon_cutoff)
+        )
         beta.append(linear_decreasing(i, n, beta_start, beta_end, beta_cutoff))
-        alpha.append(alpha_start * decreasing_factor ** i)
+        alpha.append(alpha_start * decreasing_factor**i)
 
 plt.plot(x, epsilon, label="$\epsilon$ - exploration rate", color="purple")
 plt.legend()

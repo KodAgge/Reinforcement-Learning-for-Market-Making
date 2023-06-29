@@ -11,6 +11,7 @@ import random
 import time
 from datetime import timedelta
 import pkg_resources
+
 # pkg_resources.require("gym==0.23.0")
 import gym
 import pfrl
@@ -30,6 +31,7 @@ CENT_TO_DOLLAR = 100
 # ========================================
 # ===== SETUP AND TRAINING THE AGENT =====
 # ========================================
+
 
 class DoubleDQNBatch(agents.DoubleDQN):
     """
@@ -55,8 +57,7 @@ class DoubleDQNBatch(agents.DoubleDQN):
         """
         with self.eval_mode():
             with th.no_grad(), evaluating(self.model):
-                action_value = \
-                    self._evaluate_model_and_update_recurrent_states(obs)
+                action_value = self._evaluate_model_and_update_recurrent_states(obs)
                 if max_only:
                     q = action_value.max.cpu().detach().numpy().astype(float)
                 else:
@@ -112,24 +113,48 @@ def setup_ddqn_agent(env, info, gpu=-1):
 
     # Use epsilon-greedy for exploration
     explorer = explorers.LinearDecayEpsilonGreedy(
-        info['exploration_initial_eps'], info['exploration_final_eps'],
-        info['exploration_fraction'] * info['n_train'],
-        env.action_space.sample)
+        info["exploration_initial_eps"],
+        info["exploration_final_eps"],
+        info["exploration_fraction"] * info["n_train"],
+        env.action_space.sample,
+    )
 
-    opt = th.optim.Adam(q_func.parameters(), lr=info["learning_rate_dqn"], weight_decay=0.0)
+    opt = th.optim.Adam(
+        q_func.parameters(), lr=info["learning_rate_dqn"], weight_decay=0.0
+    )
     rbuf = replay_buffers.ReplayBuffer(info["buffer_size"])
 
-    agent = DoubleDQNBatch(q_func, opt, rbuf, gpu=gpu, gamma=1, explorer=explorer,
-                    replay_start_size=info["replay_start_size"],
-                    target_update_interval=info["target_update_interval"], minibatch_size=info["minibatch_size"], 
-                    update_interval=info["update_interval"])
+    agent = DoubleDQNBatch(
+        q_func,
+        opt,
+        rbuf,
+        gpu=gpu,
+        gamma=1,
+        explorer=explorer,
+        replay_start_size=info["replay_start_size"],
+        target_update_interval=info["target_update_interval"],
+        minibatch_size=info["minibatch_size"],
+        update_interval=info["update_interval"],
+    )
 
     return agent
 
 
-def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq=None, step_offset=0,
-                           step_hooks=(), logger=None, printing=False, suffix="",
-                           threshold=1e6, print_freq=5):
+def train_pfrl_agent_batch(
+    agent,
+    env,
+    sample_env,
+    info,
+    outdir,
+    checkpoint_freq=None,
+    step_offset=0,
+    step_hooks=(),
+    logger=None,
+    printing=False,
+    suffix="",
+    threshold=1e6,
+    print_freq=5,
+):
     """
     Training PFRL agent
 
@@ -158,7 +183,9 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
     num_envs = env.num_envs
 
     log_interval = info["log_interval"]
-    num_estimate = info["num_estimate"] if sample_env.randomize_reset else 1   # if it doesnt randomize it's useless 
+    num_estimate = (
+        info["num_estimate"] if sample_env.randomize_reset else 1
+    )  # if it doesnt randomize it's useless
     steps = info["n_train"]
 
     assert (sample_env.T / sample_env.dt) * num_envs <= log_interval
@@ -166,14 +193,17 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
     print_frequency = steps / print_freq
 
     t = step_offset
-    if hasattr(agent, 't'):
+    if hasattr(agent, "t"):
         agent.t = step_offset
 
-    q_estimate = [np.mean(agent.get_q([sample_env.reset() for _ in range(num_estimate)])) / info["reward_scale"]]
+    q_estimate = [
+        np.mean(agent.get_q([sample_env.reset() for _ in range(num_estimate)]))
+        / info["reward_scale"]
+    ]
     t_estimate = [t]
     r_estimate = [0]
     loss = [0]
-    
+
     t_diff = 0
 
     # o_0, r_0
@@ -204,16 +234,35 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
             for _ in range(num_envs):
                 if (t_diff >= log_interval) or (t == steps):
                     # Save estimates
-                    q_estimate.append(np.mean(agent.get_q([sample_env.reset() for _ in range(num_estimate)])) / info["reward_scale"])
+                    q_estimate.append(
+                        np.mean(
+                            agent.get_q(
+                                [sample_env.reset() for _ in range(num_estimate)]
+                            )
+                        )
+                        / info["reward_scale"]
+                    )
 
                     t_estimate.append(t)
-                    
-                    # Save the reward estimates
-                    n_extra_steps = len(episodal_rs_averages) % (sample_env.T / sample_env.dt)
-                    avg_episodal_rew = (sample_env.T / sample_env.dt) * np.mean(episodal_rs_averages[:int((len(episodal_rs_averages)-n_extra_steps))]) / info["reward_scale"]
-                    r_estimate.append(avg_episodal_rew) # Only average full episodes
 
-                    if len(episodal_rs_averages) >= sample_env.T / sample_env.dt:   # Reset only when atleast a full episode reached
+                    # Save the reward estimates
+                    n_extra_steps = len(episodal_rs_averages) % (
+                        sample_env.T / sample_env.dt
+                    )
+                    avg_episodal_rew = (
+                        (sample_env.T / sample_env.dt)
+                        * np.mean(
+                            episodal_rs_averages[
+                                : int((len(episodal_rs_averages) - n_extra_steps))
+                            ]
+                        )
+                        / info["reward_scale"]
+                    )
+                    r_estimate.append(avg_episodal_rew)  # Only average full episodes
+
+                    if (
+                        len(episodal_rs_averages) >= sample_env.T / sample_env.dt
+                    ):  # Reset only when atleast a full episode reached
                         episodal_rs_averages = []
 
                     # Save the losses
@@ -221,16 +270,19 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
 
                     if printing:
                         smooth_r = 0.97 * smooth_r + 0.03 * avg_episodal_rew
-                        print('\t\tt: ', t)
-                        print('\t\tq: ', q_estimate[-1] / CENT_TO_DOLLAR)
-                        print('\t\tr: ', r_estimate[-1] / CENT_TO_DOLLAR)
-                        print('\t\tl: ', loss[-1] / (info["reward_scale"] ** 2) / CENT_TO_DOLLAR)
-                        print('\t\tsmooth r: ', smooth_r / CENT_TO_DOLLAR)
-                        print("\t\t"+"-"*24)
+                        print("\t\tt: ", t)
+                        print("\t\tq: ", q_estimate[-1] / CENT_TO_DOLLAR)
+                        print("\t\tr: ", r_estimate[-1] / CENT_TO_DOLLAR)
+                        print(
+                            "\t\tl: ",
+                            loss[-1] / (info["reward_scale"] ** 2) / CENT_TO_DOLLAR,
+                        )
+                        print("\t\tsmooth r: ", smooth_r / CENT_TO_DOLLAR)
+                        print("\t\t" + "-" * 24)
 
                     t_diff = 0
                     if q_estimate[-1] > threshold:
-                        print('Q ESTIMATES TOO HIGH, INTERRUPTING TRAINING')
+                        print("Q ESTIMATES TOO HIGH, INTERRUPTING TRAINING")
                         return t_estimate, q_estimate
                 t += 1
 
@@ -246,11 +298,26 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
 
                 percentage = "{:.0%}".format(t / steps)
 
-                time_remaining = str(timedelta(seconds=round((end_time_sub - start_time_sub) * (steps - t) / print_frequency, 2)))
+                time_remaining = str(
+                    timedelta(
+                        seconds=round(
+                            (end_time_sub - start_time_sub)
+                            * (steps - t)
+                            / print_frequency,
+                            2,
+                        )
+                    )
+                )
 
-                print("\tStep", t, "(" + percentage + "),", time_remaining, "remaining of this run")
+                print(
+                    "\tStep",
+                    t,
+                    "(" + percentage + "),",
+                    time_remaining,
+                    "remaining of this run",
+                )
 
-                start_time_sub = time.time()                   
+                start_time_sub = time.time()
 
             if t >= steps:
                 break
@@ -259,11 +326,11 @@ def train_pfrl_agent_batch(agent, env, sample_env, info, outdir, checkpoint_freq
 
     except (Exception, KeyboardInterrupt):
         # Save the current model before being killed
-        save_agent(agent, t, outdir, logger, suffix='_except'+suffix)
+        save_agent(agent, t, outdir, logger, suffix="_except" + suffix)
         raise
 
     # Save the final model
-    save_agent(agent, t, outdir, logger, suffix='_finish'+suffix)
+    save_agent(agent, t, outdir, logger, suffix="_finish" + suffix)
 
     return t_estimate, q_estimate, r_estimate, loss
 
@@ -336,9 +403,15 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
         model_name = outdir + "model_folder/" + str(n) + "_finish" + suffix_
 
         # Train the agent
-        t_estimate, q_estimate, r_estimate, loss = train_pfrl_agent_batch(agent, vec_env, sample_env, 
-                                                                            info, outdir + "model_folder/", 
-                                                                            printing=False, suffix=suffix_)
+        t_estimate, q_estimate, r_estimate, loss = train_pfrl_agent_batch(
+            agent,
+            vec_env,
+            sample_env,
+            info,
+            outdir + "model_folder/",
+            printing=False,
+            suffix=suffix_,
+        )
         vec_env.close()
 
         # The name of the estimate file
@@ -359,18 +432,26 @@ def train_multiple_agents_batch(info, args, n, outdir, n_runs, gpu=-1):
 
         # Calculate the remaining time
         if suffix < len(suffixes):
-            remaining_time = str(timedelta(seconds=round((len(suffixes)-suffix) * (time.time() - start_time_sub), 2)))
+            remaining_time = str(
+                timedelta(
+                    seconds=round(
+                        (len(suffixes) - suffix) * (time.time() - start_time_sub), 2
+                    )
+                )
+            )
             print(remaining_time, "REMAINING OF THE TRAINING")
 
-        print("="*40)
+        print("=" * 40)
 
     save_file_names(model_names, estimate_names, outdir)
 
     save_arguments(args, info, outdir)
 
+
 # ==========================
 # ===== HELP FUNCTIONs =====
 # ==========================
+
 
 def load_agent(agent, folder_name):
     """
@@ -389,7 +470,7 @@ def load_agent(agent, folder_name):
         the loaded object instance
 
     """
-    agent.load(os.getcwd()+ "/" + folder_name)
+    agent.load(os.getcwd() + "/" + folder_name)
 
     return agent
 
@@ -434,7 +515,6 @@ def save_parameters(model_parameters, training_parameters, folder_name):
     file_path = folder_name + "/parameters.txt"
 
     with open(file_path, "w") as f:
-
         f.write("MODEL PARAMETERS\n")
         for key in list(model_parameters.keys()):
             f.write(str(key) + " : " + str(model_parameters[key]) + "\n")
@@ -453,7 +533,7 @@ def save_file_names(model_names, estimate_names, outdir):
     model_names : list
         a list with the dir of the models
     estimate_names : list
-        a list with the dir of the estimates 
+        a list with the dir of the estimates
     outdir : str
         the path of the main folder where data will be saved in
 
@@ -488,7 +568,7 @@ def load_file_names(outdir):
     model_names : list
         a list with the dir of the models
     estimate_names : list
-        a list with the dir of the estimates 
+        a list with the dir of the estimates
     """
     file_name = outdir + "file_names.pkl"
 
@@ -555,11 +635,13 @@ def load_arguments(outdir):
 
     return args, info
 
+
 # =============================
 # ===== EVALUATING AGENTS =====
 # =============================
 
-def evaluate_DDQN_batch(outdir, n_test = 10, c=1, Q=3, gpu=-1, randomize_start=False):
+
+def evaluate_DDQN_batch(outdir, n_test=10, c=1, Q=3, gpu=-1, randomize_start=False):
     """
     Evaluates several previously trained agents. Produces plots and tables that are
     either shown or saved. If saved, they are stored in outdir/image_folder.
@@ -603,9 +685,8 @@ def evaluate_DDQN_batch(outdir, n_test = 10, c=1, Q=3, gpu=-1, randomize_start=F
     # FETCH NEEDED INFO
     model_names, estimate_names = load_file_names(outdir)
     args, info = load_arguments(outdir)
-    args["randomize_reset"] = randomize_start     
+    args["randomize_reset"] = randomize_start
     args["phi"] = 0
-
 
     # LOAD THE AGENTS
     agents = []
@@ -614,40 +695,57 @@ def evaluate_DDQN_batch(outdir, n_test = 10, c=1, Q=3, gpu=-1, randomize_start=F
     for model_name in model_names:
         agents.append(load_agent(setup_ddqn_agent(vec_env, info, gpu), model_name))
 
-
     # CREATE GRAPH WITH REWARD AND Q ESTIMATES
     print("PLOTTING TRAINING...")
     plot_training_r_q_l(estimate_names, info, folder_name=image_folder_name)
 
-    
     # # CREATE HEATMAPS OF STRATEGIES
     print("PLOTTING STRATEGIES...")
-    show_strategies_batch(agents, vec_env, info, args, info["n_states"], folder_name=image_folder_name, Q=Q)
-    
+    show_strategies_batch(
+        agents,
+        vec_env,
+        info,
+        args,
+        info["n_states"],
+        folder_name=image_folder_name,
+        Q=Q,
+    )
 
     # EVALUATE THE DIFFERENT RUNS
     if len(model_names) > 1:
         print("EVALUATING AGENTS...")
-        mean_r = evaluate_multiple_agents_batch(args, vec_env, agents, n_test, folder_name=image_folder_name)
+        mean_r = evaluate_multiple_agents_batch(
+            args, vec_env, agents, n_test, folder_name=image_folder_name
+        )
         best_idx = np.argmax(mean_r)
     else:
         best_idx = 0
-
 
     # EVALUTE THE STABILITY OF THE RUNS
     if len(model_names) > 1:
         plot_stability(agents, vec_env, args, info, Q=Q, folder_name=image_folder_name)
 
-
     # EVALUATE AGAINST BENCHMARKS
     print("EVALUATING BENCHMARKS...")
-    evaluate_benchmark_strategies_batch(args, info, vec_env, agents, best_idx, n_test, folder_name=image_folder_name, c=c, gpu=gpu)
+    evaluate_benchmark_strategies_batch(
+        args,
+        info,
+        vec_env,
+        agents,
+        best_idx,
+        n_test,
+        folder_name=image_folder_name,
+        c=c,
+        gpu=gpu,
+    )
 
     vec_env.close()
 
     # VISUALIZE THE STRATEGIES
     print("VISUALIZING THE STRATEGIES...")
-    visualize_strategies(outdir, n_test=n_test, randomize_start=randomize_start, save_mode=True)
+    visualize_strategies(
+        outdir, n_test=n_test, randomize_start=randomize_start, save_mode=True
+    )
 
 
 def sample_strategies(agent, env_function, args, info, n_test):
@@ -677,7 +775,7 @@ def sample_strategies(agent, env_function, args, info, n_test):
         a numpy array with value values
     """
     sample_envs = [env_function(args) for _ in range(info["num_envs"])]
-    
+
     Q_t = []
     X_t = []
     V_t = []
@@ -698,8 +796,11 @@ def sample_strategies(agent, env_function, args, info, n_test):
 
             for t in range(int(args["T"] / args["dt"])):
                 actions = agent.batch_act(statess)
-                
-                statess = [sample_env.step(action)[0] for action, sample_env in zip(actions, sample_envs)]
+
+                statess = [
+                    sample_env.step(action)[0]
+                    for action, sample_env in zip(actions, sample_envs)
+                ]
 
                 for i, sample_env in enumerate(sample_envs):
                     q = sample_env.Q_t
@@ -711,7 +812,7 @@ def sample_strategies(agent, env_function, args, info, n_test):
 
             for q, x, v in zip(q_t, x_t, v_t):
                 Q_t.append(q), X_t.append(x), V_t.append(v)
-    
+
     Q_t = np.array(Q_t)
     X_t = np.array(X_t)
     V_t = np.array(V_t)
@@ -746,7 +847,7 @@ def sample_strategies_mean(agents, env_function, args, info, n_test):
         a numpy array with value values
     """
     sample_envs = [env_function(args) for _ in range(info["num_envs"])]
-    
+
     Q_t = []
     X_t = []
     V_t = []
@@ -766,8 +867,11 @@ def sample_strategies_mean(agents, env_function, args, info, n_test):
 
         for t in range(int(args["T"] / args["dt"])):
             actions = mean_opt_action([statess], agents, batch=True)
-            
-            statess = [sample_env.step(action)[0] for action, sample_env in zip(actions, sample_envs)]
+
+            statess = [
+                sample_env.step(action)[0]
+                for action, sample_env in zip(actions, sample_envs)
+            ]
 
             for i, sample_env in enumerate(sample_envs):
                 q = sample_env.Q_t
@@ -784,7 +888,7 @@ def sample_strategies_mean(agents, env_function, args, info, n_test):
     X_t = np.array(X_t)
     V_t = np.array(V_t)
 
-    return Q_t, X_t, V_t            
+    return Q_t, X_t, V_t
 
 
 def scenario_analysis_plot(env, agents, args, Q=3, save_mode=True, folder_name=None):
@@ -815,11 +919,24 @@ def scenario_analysis_plot(env, agents, args, Q=3, save_mode=True, folder_name=N
     # Get the states
     states_1 = [[env.reset()[0] for _ in range(env.num_envs)]]
     states_2 = [[env.reset()[0] for _ in range(env.num_envs)]]
-    
-    actions_bid_1, actions_ask_1, t_s, q_s = get_opt_action_matrix(states_1, Q, args, agents)
-    actions_bid_2, actions_ask_2, _, _ = get_opt_action_matrix(states_2, Q, args, agents)
 
-    show_action_grid(actions_bid_1, actions_ask_1, actions_bid_2, actions_ask_2, t_s, q_s, save_mode, folder_name)
+    actions_bid_1, actions_ask_1, t_s, q_s = get_opt_action_matrix(
+        states_1, Q, args, agents
+    )
+    actions_bid_2, actions_ask_2, _, _ = get_opt_action_matrix(
+        states_2, Q, args, agents
+    )
+
+    show_action_grid(
+        actions_bid_1,
+        actions_ask_1,
+        actions_bid_2,
+        actions_ask_2,
+        t_s,
+        q_s,
+        save_mode,
+        folder_name,
+    )
 
 
 def show_action_grid(bid_1, ask_1, bid_2, ask_2, t, q, save_mode, folder_name):
@@ -851,45 +968,46 @@ def show_action_grid(bid_1, ask_1, bid_2, ask_2, t, q, save_mode, folder_name):
     """
     # First state
     df_bid_1 = pd.DataFrame(bid_1)
-    df_bid_1 = df_bid_1.set_axis(t, axis = 1)
+    df_bid_1 = df_bid_1.set_axis(t, axis=1)
     df_bid_1.index = q
-    
+
     df_ask_1 = pd.DataFrame(ask_1)
-    df_ask_1 = df_ask_1.set_axis(t, axis = 1)
+    df_ask_1 = df_ask_1.set_axis(t, axis=1)
     df_ask_1.index = q
 
     # Second state
     df_bid_2 = pd.DataFrame(bid_2)
-    df_bid_2 = df_bid_2.set_axis(t, axis = 1)
+    df_bid_2 = df_bid_2.set_axis(t, axis=1)
     df_bid_2.index = q
-    
+
     df_ask_2 = pd.DataFrame(ask_2)
-    df_ask_2 = df_ask_2.set_axis(t, axis = 1)
+    df_ask_2 = df_ask_2.set_axis(t, axis=1)
     df_ask_2.index = q
 
     # Subplots
-    fig, ((ax1, ax2, cb1), (ax3, ax4, cb2)) = plt.subplots(2, 3, figsize=(15, 14), 
-            gridspec_kw={'width_ratios':[1,1,0.08]})
+    fig, ((ax1, ax2, cb1), (ax3, ax4, cb2)) = plt.subplots(
+        2, 3, figsize=(15, 14), gridspec_kw={"width_ratios": [1, 1, 0.08]}
+    )
 
     g1 = sns.heatmap(df_bid_1, vmin=1, vmax=5, cbar=False, ax=ax1)
     g1.set_title("Optimal bid depth first state")
-    g1.set_ylabel('inventory')
-    g1.set_xlabel('time')
+    g1.set_ylabel("inventory")
+    g1.set_xlabel("time")
 
     g2 = sns.heatmap(df_ask_1, vmin=1, vmax=5, cbar_ax=cb1, ax=ax2)
     g2.set_title("Optimal ask depth first state")
-    g2.set_ylabel('inventory')
-    g2.set_xlabel('time')
+    g2.set_ylabel("inventory")
+    g2.set_xlabel("time")
 
     g3 = sns.heatmap(df_bid_2, vmin=1, vmax=5, cbar=False, ax=ax3)
     g3.set_title("Optimal bid depth second state")
-    g3.set_ylabel('inventory')
-    g3.set_xlabel('time')
+    g3.set_ylabel("inventory")
+    g3.set_xlabel("time")
 
     g4 = sns.heatmap(df_ask_2, vmin=1, vmax=5, cbar_ax=cb2, ax=ax4)
     g4.set_title("Optimal ask depth second state")
-    g4.set_ylabel('inventory')
-    g4.set_xlabel('time')
+    g4.set_ylabel("inventory")
+    g4.set_xlabel("time")
 
     if save_mode:
         plt.savefig(folder_name + "/scenario")
@@ -923,27 +1041,27 @@ def show_action_diff(bid_diff, ask_diff, t, q, save_mode, folder_name):
     """
     # First state
     df_bid_1 = pd.DataFrame(bid_diff)
-    df_bid_1 = df_bid_1.set_axis(t, axis = 1)
+    df_bid_1 = df_bid_1.set_axis(t, axis=1)
     df_bid_1.index = q
-    
+
     df_ask_1 = pd.DataFrame(ask_diff)
-    df_ask_1 = df_ask_1.set_axis(t, axis = 1)
+    df_ask_1 = df_ask_1.set_axis(t, axis=1)
     df_ask_1.index = q
 
-
     # Subplots
-    fig, ((ax1, ax2, cb1)) = plt.subplots(1, 3, figsize=(15, 7), 
-            gridspec_kw={'width_ratios':[1,1,0.08]})
+    fig, ((ax1, ax2, cb1)) = plt.subplots(
+        1, 3, figsize=(15, 7), gridspec_kw={"width_ratios": [1, 1, 0.08]}
+    )
 
     g1 = sns.heatmap(df_bid_1, vmin=0, vmax=4, cbar=False, ax=ax1)
     g1.set_title("Optimal bid depth - absolute difference")
-    g1.set_ylabel('inventory')
-    g1.set_xlabel('time')
+    g1.set_ylabel("inventory")
+    g1.set_xlabel("time")
 
     g2 = sns.heatmap(df_ask_1, vmin=0, vmax=4, cbar_ax=cb1, ax=ax2)
     g2.set_title("Optimal ask depth - absolute difference")
-    g2.set_ylabel('inventory')
-    g2.set_xlabel('time')
+    g2.set_ylabel("inventory")
+    g2.set_xlabel("time")
 
     if save_mode:
         plt.savefig(folder_name + "/scenario")
@@ -952,9 +1070,20 @@ def show_action_diff(bid_diff, ask_diff, t, q, save_mode, folder_name):
         plt.show()
 
 
-def evaluate_benchmark_strategies_batch(args, info, env, agents, best_idx, n_test, folder_name = None, save_mode = True, c=1, gpu=-1):
+def evaluate_benchmark_strategies_batch(
+    args,
+    info,
+    env,
+    agents,
+    best_idx,
+    n_test,
+    folder_name=None,
+    save_mode=True,
+    c=1,
+    gpu=-1,
+):
     """
-    Evaluates the best of the previously trained agents and compares against a constant and random strategy. 
+    Evaluates the best of the previously trained agents and compares against a constant and random strategy.
     Produces plots and tables that are either shown or saved. If saved, they are stored in outdir/image_folder.
 
     Parameters
@@ -983,35 +1112,60 @@ def evaluate_benchmark_strategies_batch(args, info, env, agents, best_idx, n_tes
     """
     # Evaluate the best agent
     print("\tbest agent")
-    r_DDQN = compute_reward_agent_batch(agents[best_idx], env, n_test, args["T"]/args["dt"]).reshape(-1)
+    r_DDQN = compute_reward_agent_batch(
+        agents[best_idx], env, n_test, args["T"] / args["dt"]
+    ).reshape(-1)
 
     # Evaluate the mean agent
     print("\tmean agent")
-    r_DDQN_mean = compute_reward_mean_agent_batch(agents, env, num_episodes=n_test, num_steps=args["T"]/args["dt"]).reshape(-1)
+    r_DDQN_mean = compute_reward_mean_agent_batch(
+        agents, env, num_episodes=n_test, num_steps=args["T"] / args["dt"]
+    ).reshape(-1)
 
     # Evaluate constant strategy
     print("\tconstant strategy")
-    r_constant = compute_reward_benchmark_batch(env, num_episodes=n_test, num_steps=args["T"]/args["dt"], c=c, strategy="constant").reshape(-1)
+    r_constant = compute_reward_benchmark_batch(
+        env,
+        num_episodes=n_test,
+        num_steps=args["T"] / args["dt"],
+        c=c,
+        strategy="constant",
+    ).reshape(-1)
 
     # Evalute random strategy
     print("\trandom_strategy")
-    r_random = compute_reward_benchmark_batch(env, num_episodes=n_test, num_steps=args["T"]/args["dt"], strategy="random").reshape(-1)
+    r_random = compute_reward_benchmark_batch(
+        env, num_episodes=n_test, num_steps=args["T"] / args["dt"], strategy="random"
+    ).reshape(-1)
 
     # Setup for the table
-    rewards = [r_constant   / args["reward_scale"],
-            r_random        / args["reward_scale"],
-            r_DDQN          / args["reward_scale"],
-            r_DDQN_mean     / args["reward_scale"]]
+    rewards = [
+        r_constant / args["reward_scale"],
+        r_random / args["reward_scale"],
+        r_DDQN / args["reward_scale"],
+        r_DDQN_mean / args["reward_scale"],
+    ]
 
-    labels = ["constant (d=" + str(c) + ")",
-              "random",
-              "DDQN (best run)",
-              "DDQN (mean)"]
+    labels = ["constant (d=" + str(c) + ")", "random", "DDQN (best run)", "DDQN (mean)"]
 
-    headers = ['strategy', 'mean reward', 'std reward', 'reward per action', 'reward per second']
+    headers = [
+        "strategy",
+        "mean reward",
+        "std reward",
+        "reward per action",
+        "reward per second",
+    ]
     rows = []
     for i, label in enumerate(labels):
-        rows.append([label, np.mean(rewards[i]), np.std(rewards[i]), np.mean(rewards[i]) / (args["T"] / args["dt"]), np.mean(rewards[i]) / args["T"]])
+        rows.append(
+            [
+                label,
+                np.mean(rewards[i]),
+                np.std(rewards[i]),
+                np.mean(rewards[i]) / (args["T"] / args["dt"]),
+                np.mean(rewards[i]) / args["T"],
+            ]
+        )
 
     # Save or show the table
     if save_mode:
@@ -1034,7 +1188,9 @@ def evaluate_benchmark_strategies_batch(args, info, env, agents, best_idx, n_tes
         plt.show()
 
 
-def compute_reward_benchmark_batch(env, c=1, num_episodes=int(1e3), num_steps=1, strategy="random"):
+def compute_reward_benchmark_batch(
+    env, c=1, num_episodes=int(1e3), num_steps=1, strategy="random"
+):
     """
     Compute rewards when following the policy given by predicting with the model
 
@@ -1062,7 +1218,7 @@ def compute_reward_benchmark_batch(env, c=1, num_episodes=int(1e3), num_steps=1,
             if strategy == "random":
                 actions = [env.action_space.sample() for _ in range(num_envs)]
             elif strategy == "constant":
-                actions = [6 * (c - 1) for _ in range(num_envs)]    # HARD CODED
+                actions = [6 * (c - 1) for _ in range(num_envs)]  # HARD CODED
             _, r, _, _ = env.step(actions)
             r_all += r
 
@@ -1074,9 +1230,11 @@ def compute_reward_benchmark_batch(env, c=1, num_episodes=int(1e3), num_steps=1,
     return reward_end / CENT_TO_DOLLAR
 
 
-def evaluate_multiple_agents_batch(args, env, agents, n_test, n_states = 10000, folder_name = None, save_mode = True):
+def evaluate_multiple_agents_batch(
+    args, env, agents, n_test, n_states=10000, folder_name=None, save_mode=True
+):
     """
-    Evaluates the previously trained agents and compares the against eachother. 
+    Evaluates the previously trained agents and compares the against eachother.
     Produces plots and tables that are either shown or saved. If saved, they are stored in outdir/image_folder.
 
     Parameters
@@ -1109,23 +1267,45 @@ def evaluate_multiple_agents_batch(args, env, agents, n_test, n_states = 10000, 
     # Get the rewards of all the agents
     for i, agent in enumerate(agents):
         with agent.eval_mode():
-            rewards.append(compute_reward_agent_batch(agent, env, n_test, args["T"]/args["dt"]).reshape(-1) / args["reward_scale"])
+            rewards.append(
+                compute_reward_agent_batch(
+                    agent, env, n_test, args["T"] / args["dt"]
+                ).reshape(-1)
+                / args["reward_scale"]
+            )
 
             q_value = 0
             for states in statess:
-                q_value += np.mean(agent.get_q(states)) 
+                q_value += np.mean(agent.get_q(states))
 
-            q_values.append(q_value / (n_states * args["reward_scale"]) / CENT_TO_DOLLAR)
+            q_values.append(
+                q_value / (n_states * args["reward_scale"]) / CENT_TO_DOLLAR
+            )
 
     # Setup the table
     labels = ["run " + str(i + 1) for i in range(len(agents))]
 
-    headers = ['run', 'mean reward', 'std reward', 'reward per action', 'reward per second', 'v*(0,0)']
+    headers = [
+        "run",
+        "mean reward",
+        "std reward",
+        "reward per action",
+        "reward per second",
+        "v*(0,0)",
+    ]
     rows = []
 
     for i, label in enumerate(labels):
-        rows.append([label, np.mean(rewards[i]), np.std(rewards[i]), np.mean(rewards[i]) / (args["T"] / args["dt"]), 
-                        np.mean(rewards[i]) / args["T"], q_values[i]])
+        rows.append(
+            [
+                label,
+                np.mean(rewards[i]),
+                np.std(rewards[i]),
+                np.mean(rewards[i]) / (args["T"] / args["dt"]),
+                np.mean(rewards[i]) / args["T"],
+                q_values[i],
+            ]
+        )
 
     # Save or show the table
     if save_mode:
@@ -1168,8 +1348,11 @@ def a_from_agent(agent, env):
         a = []
         obs = env.reset()
         for t in range(env.num_action_times):
-            action = agent.act(obs) 
-            action_tuple = (int(action/env.max_quote_depth) + 1, action % env.max_quote_depth + 1)
+            action = agent.act(obs)
+            action_tuple = (
+                int(action / env.max_quote_depth) + 1,
+                action % env.max_quote_depth + 1,
+            )
             a.append(action_tuple)
             obs, _, done, _ = env.step(action)
             if done:
@@ -1291,9 +1474,11 @@ def mean_opt_action(statess, agents, batch=False):
 
     return action
 
+
 # ====================
 # ===== PLOTTING =====
 # ====================
+
 
 def get_opt_action_matrix(statess, Q, args, agents):
     """
@@ -1323,7 +1508,7 @@ def get_opt_action_matrix(statess, Q, args, agents):
     """
     actions_bid = np.zeros((2 * Q + 1, int(args["T"] / args["dt"] + 1)))
     actions_ask = np.zeros((2 * Q + 1, int(args["T"] / args["dt"] + 1)))
-    
+
     q_s = np.arange(-Q, Q + 1)
     t_s = np.arange(int(args["T"] / args["dt"] + 1)) * args["dt"]
 
@@ -1340,12 +1525,17 @@ def get_opt_action_matrix(statess, Q, args, agents):
             action = mean_opt_action(statess, agents)
 
             # Translate to depths
-            actions_bid[i, j], actions_ask[i, j] = int(action/5 + 1), action % 5 + 1    # HARD CODED; FIX THIS
+            actions_bid[i, j], actions_ask[i, j] = (
+                int(action / 5 + 1),
+                action % 5 + 1,
+            )  # HARD CODED; FIX THIS
 
     return actions_bid, actions_ask, t_s, q_s
 
 
-def show_opt_action(actions_bid, actions_ask, t_s, q_s, folder_name, suffix=None, save_mode=True):
+def show_opt_action(
+    actions_bid, actions_ask, t_s, q_s, folder_name, suffix=None, save_mode=True
+):
     """
     Plots heatmaps of optimal bid and ask depths.
 
@@ -1372,13 +1562,12 @@ def show_opt_action(actions_bid, actions_ask, t_s, q_s, folder_name, suffix=None
     """
     # Create the bid plot
     df_bid = pd.DataFrame(actions_bid)
-    df_bid = df_bid.set_axis(t_s, axis = 1)
+    df_bid = df_bid.set_axis(t_s, axis=1)
     df_bid.index = q_s
-    
 
     plt.figure()
 
-    fig = sns.heatmap(df_bid, vmin=1, vmax=5) # HARD CODED
+    fig = sns.heatmap(df_bid, vmin=1, vmax=5)  # HARD CODED
     fig.set_title("Optimal bid depth (" + suffix + ")")
     fig.set_xlabel("t")
     fig.set_ylabel("inventory")
@@ -1388,15 +1577,15 @@ def show_opt_action(actions_bid, actions_ask, t_s, q_s, folder_name, suffix=None
         plt.close()
     else:
         plt.show()
-    
+
     # Create the ask plot
     df_ask = pd.DataFrame(actions_ask)
-    df_ask = df_ask.set_axis(t_s, axis = 1)
+    df_ask = df_ask.set_axis(t_s, axis=1)
     df_ask.index = q_s
 
     plt.figure()
 
-    fig = sns.heatmap(df_ask, vmin=1, vmax=5) # HARD CODED
+    fig = sns.heatmap(df_ask, vmin=1, vmax=5)  # HARD CODED
     fig.set_title("Optimal ask depth (" + suffix + ")")
     fig.set_xlabel("t")
     fig.set_ylabel("inventory")
@@ -1408,7 +1597,9 @@ def show_opt_action(actions_bid, actions_ask, t_s, q_s, folder_name, suffix=None
         plt.show()
 
 
-def show_strategies_batch(agents, env, info, args, n_states = None, Q = 3, folder_name = None, save_mode = True):
+def show_strategies_batch(
+    agents, env, info, args, n_states=None, Q=3, folder_name=None, save_mode=True
+):
     """
     Shows the optimal depths in heatmap form for different states
 
@@ -1444,15 +1635,23 @@ def show_strategies_batch(agents, env, info, args, n_states = None, Q = 3, folde
     else:
         statess = [env.reset() for i in range(n_states)]
         suffix = "randomized_" + str(n_states)
-    
+
     actions_bid, actions_ask, t_s, q_s = get_opt_action_matrix(statess, Q, args, agents)
 
-    show_opt_action(actions_bid, actions_ask, t_s, q_s, folder_name, suffix=suffix, save_mode=save_mode)
+    show_opt_action(
+        actions_bid,
+        actions_ask,
+        t_s,
+        q_s,
+        folder_name,
+        suffix=suffix,
+        save_mode=save_mode,
+    )
 
 
-def plot_training_r_q_l(estimate_names, info, folder_name = None, save_mode = True):
+def plot_training_r_q_l(estimate_names, info, folder_name=None, save_mode=True):
     """
-    Plots the rewards, losses and q-estimates calculated during training. 
+    Plots the rewards, losses and q-estimates calculated during training.
     A CI of one std is also shown for all the different runs.
 
     Parameters
@@ -1479,13 +1678,13 @@ def plot_training_r_q_l(estimate_names, info, folder_name = None, save_mode = Tr
         r_estimates.append(r)
         l_estimates.append(l)
 
-    r_matrix = np.array(r_estimates) / CENT_TO_DOLLAR 
+    r_matrix = np.array(r_estimates) / CENT_TO_DOLLAR
     q_matrix = np.array(q_estimates) / CENT_TO_DOLLAR
     l_matrix = np.array(l_estimates) / (info["reward_scale"] ** 2) / CENT_TO_DOLLAR
 
     if True:
-        q_matrix[:, 0] = q_matrix[:, 1] # DUE TO BUG IN CODE
-        r_matrix[:, 0] = r_matrix[:, 1] # DUE TO BUG IN CODE
+        q_matrix[:, 0] = q_matrix[:, 1]  # DUE TO BUG IN CODE
+        r_matrix[:, 0] = r_matrix[:, 1]  # DUE TO BUG IN CODE
 
     r_mean = np.mean(r_matrix, axis=0)
     r_std = np.std(r_matrix, axis=0)
@@ -1503,25 +1702,46 @@ def plot_training_r_q_l(estimate_names, info, folder_name = None, save_mode = Tr
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(21, 7))
 
     # Plot the rewards
-    ax1.fill_between(t, reward_area[0, :], reward_area[1, :], alpha = 0.3, color="purple", label="±$\sigma$")
+    ax1.fill_between(
+        t,
+        reward_area[0, :],
+        reward_area[1, :],
+        alpha=0.3,
+        color="purple",
+        label="±$\sigma$",
+    )
     ax1.plot(t, r_mean, linewidth=0.4, color="purple", label="mean reward")
-    ax1.set_xlabel('step')
-    ax1.set_ylabel('reward')
-    ax1.set_title('average reward during training')
+    ax1.set_xlabel("step")
+    ax1.set_ylabel("reward")
+    ax1.set_title("average reward during training")
 
     # Plot the Q-values
-    ax2.fill_between(t, Q_zero_area[0, :], Q_zero_area[1, :], alpha = 0.3, color="purple", label="±$\sigma$")
+    ax2.fill_between(
+        t,
+        Q_zero_area[0, :],
+        Q_zero_area[1, :],
+        alpha=0.3,
+        color="purple",
+        label="±$\sigma$",
+    )
     ax2.plot(t, q_mean, linewidth=0.4, color="purple", label="mean q-estimate")
-    ax2.set_xlabel('step')
-    ax2.set_ylabel('q-estimate')
-    ax2.set_title('average q-estimate during training')
+    ax2.set_xlabel("step")
+    ax2.set_ylabel("q-estimate")
+    ax2.set_title("average q-estimate during training")
 
     # Plot the losses
-    ax3.fill_between(t, loss_area[0, :], loss_area[1, :], alpha = 0.3, color="purple", label="±$\sigma$")
+    ax3.fill_between(
+        t,
+        loss_area[0, :],
+        loss_area[1, :],
+        alpha=0.3,
+        color="purple",
+        label="±$\sigma$",
+    )
     ax3.plot(t, l_mean, linewidth=0.4, color="purple", label="mean loss")
-    ax3.set_xlabel('step')
-    ax3.set_ylabel('loss')
-    ax3.set_title('average loss during training')
+    ax3.set_xlabel("step")
+    ax3.set_ylabel("loss")
+    ax3.set_title("average loss during training")
 
     ax1.legend()
     ax2.legend()
@@ -1534,7 +1754,9 @@ def plot_training_r_q_l(estimate_names, info, folder_name = None, save_mode = Tr
         plt.show()
 
 
-def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_start=False):
+def visualize_strategies(
+    outdir, n_test=10, gpu=-1, save_mode=True, randomize_start=False
+):
     """
     Evaluates several previously trained agents. Produces plots and tables that are
     either shown or saved. If saved, they are stored in outdir/image_folder.
@@ -1581,27 +1803,48 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
     x_axis.set_title("The cash process - $X_t$")
     v_axis.set_title("The value process - $V_t$")
 
-    q_std = np.std(Qs, axis=0)      
-    q_mean = np.mean(Qs, axis=0)    
-    x_mean = np.mean(Xs, axis=0)    / CENT_TO_DOLLAR
-    x_std = np.std(Xs, axis=0)      / CENT_TO_DOLLAR
-    v_mean = np.mean(Vs, axis=0)    / CENT_TO_DOLLAR
-    v_std = np.std(Vs, axis=0)      / CENT_TO_DOLLAR
+    q_std = np.std(Qs, axis=0)
+    q_mean = np.mean(Qs, axis=0)
+    x_mean = np.mean(Xs, axis=0) / CENT_TO_DOLLAR
+    x_std = np.std(Xs, axis=0) / CENT_TO_DOLLAR
+    v_mean = np.mean(Vs, axis=0) / CENT_TO_DOLLAR
+    v_std = np.std(Vs, axis=0) / CENT_TO_DOLLAR
 
     q_axis.plot(q_mean, color="purple", label="mean inventory")
-    q_axis.fill_between(list(range(len(q_mean))), q_mean - q_std, q_mean + q_std, alpha=0.3, color="purple", label="±$\sigma$")
+    q_axis.fill_between(
+        list(range(len(q_mean))),
+        q_mean - q_std,
+        q_mean + q_std,
+        alpha=0.3,
+        color="purple",
+        label="±$\sigma$",
+    )
     q_axis.set_xlabel("t")
     q_axis.set_ylabel("$Q_t$")
     q_axis.get_yaxis().get_major_formatter().set_useOffset(False)
 
     x_axis.plot(x_mean, color="purple", label="mean cash")
-    x_axis.fill_between(list(range(len(x_mean))), x_mean - x_std, x_mean + x_std, alpha=0.3, color="purple", label="±$\sigma$")
+    x_axis.fill_between(
+        list(range(len(x_mean))),
+        x_mean - x_std,
+        x_mean + x_std,
+        alpha=0.3,
+        color="purple",
+        label="±$\sigma$",
+    )
     x_axis.set_xlabel("t")
     x_axis.set_ylabel("$X_t$")
     x_axis.get_yaxis().get_major_formatter().set_useOffset(False)
 
     v_axis.plot(v_mean, color="purple", label="mean value")
-    v_axis.fill_between(list(range(len(v_mean))), v_mean - v_std, v_mean + v_std, alpha=0.3, color="purple", label="±$\sigma$")
+    v_axis.fill_between(
+        list(range(len(v_mean))),
+        v_mean - v_std,
+        v_mean + v_std,
+        alpha=0.3,
+        color="purple",
+        label="±$\sigma$",
+    )
     v_axis.set_xlabel("t")
     v_axis.set_ylabel("$V_t$")
     v_axis.get_yaxis().get_major_formatter().set_useOffset(False)
@@ -1630,13 +1873,13 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
     for i, agent in enumerate(agents):
         Qs, Xs, Vs = sample_strategies(agent, env_function, args, info, n_test)
 
-        q_mean = np.mean(Qs, axis=0)    
-        x_mean = np.mean(Xs, axis=0)    / CENT_TO_DOLLAR
-        v_mean = np.mean(Vs, axis=0)    / CENT_TO_DOLLAR
+        q_mean = np.mean(Qs, axis=0)
+        x_mean = np.mean(Xs, axis=0) / CENT_TO_DOLLAR
+        v_mean = np.mean(Vs, axis=0) / CENT_TO_DOLLAR
 
-        q_axis.plot(q_mean, label="run "+str(i+1))
-        x_axis.plot(x_mean, label="run "+str(i+1))
-        v_axis.plot(v_mean, label="run "+str(i+1))
+        q_axis.plot(q_mean, label="run " + str(i + 1))
+        x_axis.plot(x_mean, label="run " + str(i + 1))
+        v_axis.plot(v_mean, label="run " + str(i + 1))
 
     q_axis.set_title("The inventory process - $Q_t$")
     x_axis.set_title("The cash process - $X_t$")
@@ -1653,7 +1896,7 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
     v_axis.set_xlabel("t")
     v_axis.set_ylabel("$V_t$")
     v_axis.get_yaxis().get_major_formatter().set_useOffset(False)
-    
+
     if q_mean.shape[0] < 10:
         ticks = [i for i in range(0, q_mean.shape[0])]
 
@@ -1674,7 +1917,9 @@ def visualize_strategies(outdir, n_test = 10, gpu=-1, save_mode=True, randomize_
     vec_env.close()
 
 
-def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name = None, n_resets = 10):
+def plot_stability(
+    agents, env, args, info, Q=2, save_mode=True, folder_name=None, n_resets=10
+):
     """
     Plots three figures displaying the stability of DDQN runs.
 
@@ -1721,25 +1966,25 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
 
         for i, q in enumerate(q_s):
             for j, t in enumerate(t_s):
-                    for state in states:
-                        state[0] = q / 100
-                        state[1] = t / args["T"]
+                for state in states:
+                    state[0] = q / 100
+                    state[1] = t / args["T"]
 
-                    std_matrix[i, j] = get_standard_deviation(agents, states)
-                    unique_matrix[i, j] = get_n_unique_actions(agents, states)
-                    error_matrix[i, j] = get_n_errors(agents, states)
+                std_matrix[i, j] = get_standard_deviation(agents, states)
+                unique_matrix[i, j] = get_n_unique_actions(agents, states)
+                error_matrix[i, j] = get_n_errors(agents, states)
 
         mean_std_matrix += std_matrix
         mean_unique_matrix += unique_matrix
         mean_error_matrix += error_matrix
-    
+
     mean_std_matrix = pd.DataFrame(mean_std_matrix / n_resets)
     mean_unique_matrix = pd.DataFrame(mean_unique_matrix / n_resets)
     mean_error_matrix = pd.DataFrame(mean_error_matrix / n_resets)
 
-    mean_std_matrix = mean_std_matrix.set_axis(t_s, axis = 1)
-    mean_unique_matrix = mean_unique_matrix.set_axis(t_s, axis = 1)
-    mean_error_matrix = mean_error_matrix.set_axis(t_s, axis = 1)
+    mean_std_matrix = mean_std_matrix.set_axis(t_s, axis=1)
+    mean_unique_matrix = mean_unique_matrix.set_axis(t_s, axis=1)
+    mean_error_matrix = mean_error_matrix.set_axis(t_s, axis=1)
 
     mean_std_matrix.index = q_s
     mean_unique_matrix.index = q_s
@@ -1749,8 +1994,8 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
 
     fig_std = sns.heatmap(mean_std_matrix)
     fig_std.set_title("Average standard deviation of optimal actions")
-    fig_std.set_ylabel('inventory (q)')
-    fig_std.set_xlabel('time (t)')
+    fig_std.set_ylabel("inventory (q)")
+    fig_std.set_xlabel("time (t)")
 
     if save_mode:
         plt.savefig(folder_name + "/heatmap_standard_deviation" + suffix)
@@ -1759,11 +2004,11 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
         plt.show()
 
     plt.figure()
-    
+
     fig_unique = sns.heatmap(mean_unique_matrix, vmin=1, vmax=len(agents))
     fig_unique.set_title("Average number of unique optimal actions")
-    fig_unique.set_ylabel('inventory (q)')
-    fig_unique.set_xlabel('time (t)')
+    fig_unique.set_ylabel("inventory (q)")
+    fig_unique.set_xlabel("time (t)")
 
     if save_mode:
         plt.savefig(folder_name + "/heatmap_n_unique_actions" + suffix)
@@ -1775,8 +2020,8 @@ def plot_stability(agents, env, args, info, Q = 2, save_mode = True, folder_name
 
     fig_errors = sns.heatmap(mean_error_matrix, vmin=0, vmax=len(agents))
     fig_errors.set_title("Average number of actions not agreeing with mean strategy")
-    fig_errors.set_ylabel('inventory (q)')
-    fig_errors.set_xlabel('time (t)')
+    fig_errors.set_ylabel("inventory (q)")
+    fig_errors.set_xlabel("time (t)")
 
     if save_mode:
         plt.savefig(folder_name + "/heatmap_n_errors" + suffix)
@@ -1802,16 +2047,18 @@ def get_standard_deviation(agents, states):
         an array with average standard deviations
     """
     opt_actions = mean_opt_action([states], agents, batch=True)
-    
+
     q_values = []
 
     for agent in agents:
-        q_values.append(agent.get_q(states, False)[np.arange(len(opt_actions)), opt_actions])
+        q_values.append(
+            agent.get_q(states, False)[np.arange(len(opt_actions)), opt_actions]
+        )
 
     q_std = np.mean(np.std(q_values, axis=0))
-    
+
     return q_std
-        
+
 
 def get_n_errors(agents, states):
     """
@@ -1830,16 +2077,16 @@ def get_n_errors(agents, states):
         an array with the average number of errors
     """
     mean_opt_actions = mean_opt_action([states], agents, batch=True)
-    
+
     n_errors = 0
 
     for agent in agents:
         opt_actions = np.argmax(agent.get_q(states, False), axis=1)
 
         n_errors += opt_actions != mean_opt_actions
-        
+
     n_errors_mean = np.mean(n_errors)
-    
+
     return n_errors_mean
 
 
@@ -1875,9 +2122,11 @@ def get_n_unique_actions(agents, states):
 
     return n_unique_mean
 
+
 # =================
 # ===== BATCH =====
 # =================
+
 
 def setup_batch_env(args, env_function, num_envs=1, seed=0):
     """
@@ -1898,7 +2147,7 @@ def setup_batch_env(args, env_function, num_envs=1, seed=0):
     # If seed=0 and processes=4, subprocess seeds are [0, 1, 2, 3].
     # If seed=1 and processes=4, subprocess seeds are [4, 5, 6, 7].
     process_seeds = np.arange(num_envs) + seed * num_envs
-    assert process_seeds.max() < 2 ** 32
+    assert process_seeds.max() < 2**32
 
     # start = time.time()
 
@@ -1910,15 +2159,9 @@ def setup_batch_env(args, env_function, num_envs=1, seed=0):
         env.seed(env_seed)
         return env
 
-    
-
     vec_env = pfrl.envs.MultiprocessVectorEnv(
-        [
-            functools.partial(make_env, idx)
-            for idx, env in enumerate(range(num_envs))
-        ]
+        [functools.partial(make_env, idx) for idx, env in enumerate(range(num_envs))]
     )
-    
 
     return vec_env
 
@@ -1936,6 +2179,7 @@ def get_env_function():
     env_function : fnc
         function used for creating an instance of the environment
     """
+
     def deep_env_function(args):
         """
         Returns an instance of the environment
@@ -1951,6 +2195,7 @@ def get_env_function():
             an instance of the environment
         """
         from environments.mc_model.mc_environment_deep import MonteCarloEnvDeep
+
         EnvClass = MonteCarloEnvDeep
         env = EnvClass(**args)
         return env

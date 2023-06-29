@@ -7,7 +7,7 @@ from collections import defaultdict
 import pickle
 
 
-def heatmap_Q(Q_tab, file_path = None, skip_T = False):
+def heatmap_Q(Q_tab, file_path=None, skip_T=False):
     """
     generates a heatmap based on Q_tab
 
@@ -36,11 +36,12 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
         optimal_ask[state] = optimal_action[1] + 1
         optimal_MO[state] = optimal_action[2]
 
-    ser = pd.Series(list(optimal_bid.values()),
-                    index=pd.MultiIndex.from_tuples(optimal_bid.keys()))
+    ser = pd.Series(
+        list(optimal_bid.values()), index=pd.MultiIndex.from_tuples(optimal_bid.keys())
+    )
     df = ser.unstack().fillna(0)
     if skip_T:
-        df = df.iloc[:,:-1]
+        df = df.iloc[:, :-1]
     fig = sns.heatmap(df)
     fig.set_title("Optimal bid depth")
     fig.set_xlabel("t (grouped)")
@@ -53,11 +54,12 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
         plt.close()
 
     plt.figure()
-    ser = pd.Series(list(optimal_ask.values()),
-                    index=pd.MultiIndex.from_tuples(optimal_ask.keys()))
+    ser = pd.Series(
+        list(optimal_ask.values()), index=pd.MultiIndex.from_tuples(optimal_ask.keys())
+    )
     df = ser.unstack().fillna(0)
     if skip_T:
-        df = df.iloc[:,:-1]
+        df = df.iloc[:, :-1]
     fig = sns.heatmap(df)
     fig.set_title("Optimal ask depth")
     fig.set_xlabel("t (grouped)")
@@ -70,11 +72,12 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
         plt.close()
 
     plt.figure()
-    ser = pd.Series(list(optimal_MO.values()),
-                    index=pd.MultiIndex.from_tuples(optimal_MO.keys()))
+    ser = pd.Series(
+        list(optimal_MO.values()), index=pd.MultiIndex.from_tuples(optimal_MO.keys())
+    )
     df = ser.unstack().fillna(0)
     if skip_T:
-        df = df.iloc[:,:-1]
+        df = df.iloc[:, :-1]
     fig = sns.heatmap(df)
     fig.set_title("Market order")
     fig.set_xlabel("t (grouped)")
@@ -87,7 +90,7 @@ def heatmap_Q(Q_tab, file_path = None, skip_T = False):
         plt.close()
 
 
-def heatmap_Q_std(Q_std, file_path = None):
+def heatmap_Q_std(Q_std, file_path=None):
     """
     Plots a heatmap of the standard deviation of the q-value of the optimal actions
 
@@ -105,8 +108,7 @@ def heatmap_Q_std(Q_std, file_path = None):
 
     plt.figure()
 
-    ser = pd.Series(list(Q_std.values()),
-                    index=pd.MultiIndex.from_tuples(Q_std.keys()))
+    ser = pd.Series(list(Q_std.values()), index=pd.MultiIndex.from_tuples(Q_std.keys()))
     df = ser.unstack().fillna(0)
     fig = sns.heatmap(df)
     fig.set_title("Standard deviation of optimal actions")
@@ -120,7 +122,7 @@ def heatmap_Q_std(Q_std, file_path = None):
         plt.close()
 
 
-def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique=True, file_path = None):
+def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique=True, file_path=None):
     """
     Plots a heatmap of the difference in optimal actions between runs. Can show number of
     unique actions or number of actions not agreeing with mean optimal.
@@ -167,15 +169,17 @@ def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique=True, file_path = None):
             num_errors = 0
 
             for Q_tab in Q_tables:
-                error = np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape) != np.unravel_index(
-                    Q_mean[state].argmax(), Q_mean[state].shape)
+                error = np.unravel_index(
+                    Q_tab[state].argmax(), Q_tab[state].shape
+                ) != np.unravel_index(Q_mean[state].argmax(), Q_mean[state].shape)
                 num_errors += error
 
             Q_n_errors[state] = num_errors
 
     plt.figure()
-    ser = pd.Series(list(Q_n_errors.values()),
-                    index=pd.MultiIndex.from_tuples(Q_n_errors.keys()))
+    ser = pd.Series(
+        list(Q_n_errors.values()), index=pd.MultiIndex.from_tuples(Q_n_errors.keys())
+    )
     df = ser.unstack().fillna(0)
     fig = sns.heatmap(df, vmin=vmin, vmax=len(Q_tables))
     fig.set_title(title)
@@ -194,7 +198,7 @@ def heatmap_Q_n_errors(Q_mean, Q_tables, n_unique=True, file_path = None):
             plt.close()
 
 
-def show_Q(Q_tab, file_path = None):
+def show_Q(Q_tab, file_path=None):
     """
     plotting the optimal depths from Q_tab
 
@@ -214,15 +218,18 @@ def show_Q(Q_tab, file_path = None):
     optimal_ask = dict()
 
     for state in list(Q_tab.keys()):
-        optimal_action = np.array(np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape))
-        [optimal_bid[state], optimal_ask[state]] = (optimal_action[0:2] + 1)
+        optimal_action = np.array(
+            np.unravel_index(Q_tab[state].argmax(), Q_tab[state].shape)
+        )
+        [optimal_bid[state], optimal_ask[state]] = optimal_action[0:2] + 1
 
-    ser = pd.Series(list(optimal_bid.values()),
-                    index=pd.MultiIndex.from_tuples(optimal_bid.keys()))
+    ser = pd.Series(
+        list(optimal_bid.values()), index=pd.MultiIndex.from_tuples(optimal_bid.keys())
+    )
     df = ser.unstack()
     df = df.T
     df.columns = "q=" + df.columns.map(str)
-    df.plot.line(title="Optimal bid depth", style='.-')
+    df.plot.line(title="Optimal bid depth", style=".-")
     plt.legend(loc="upper right")
     plt.xlabel("t (grouped)")
     plt.ylabel("depth")
@@ -234,12 +241,13 @@ def show_Q(Q_tab, file_path = None):
         plt.savefig(file_path + "opt_bid_strategy")
         plt.close()
 
-    ser = pd.Series(list(optimal_ask.values()),
-                    index=pd.MultiIndex.from_tuples(optimal_ask.keys()))
+    ser = pd.Series(
+        list(optimal_ask.values()), index=pd.MultiIndex.from_tuples(optimal_ask.keys())
+    )
     df = ser.unstack()
     df = df.T
     df.columns = "q=" + df.columns.map(str)
-    df.plot.line(title="Optimal ask depth", style='.-')
+    df.plot.line(title="Optimal ask depth", style=".-")
     plt.legend(loc="upper right")
     plt.xlabel("t (grouped)")
     plt.ylabel("depth")
